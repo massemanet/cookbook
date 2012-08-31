@@ -1,0 +1,34 @@
+A simple github workflow, using CodeMirror as an example.
+
+First we fork the upstream repo, so we get a place on github that we can push to and issue pull requests from. Go to the canonical (henceforth known as "upstream") repo (https://github.com/marijnh/CodeMirror) on github and use the "fork" button.
+
+We clone our fork, in order to get a local repo.
+  git clone git@github.com:myname/CodeMirror.git
+
+We want to be able to keep our fork up to date with the upstream repo, so we set up a remote (cleverly named "upstream").
+  git remote add upstream git://github.com/marijnh/CodeMirror.git
+
+In order to keep our local master up-to-date, we merge from the upstream master into the local master.
+  git co master
+  git merge upstream/master
+
+The work we do locally is always done in feature branches. We never merge anything into or local master. So, if we want to add antigravity to our project, we do this;
+  git checkout -b antigravity origin/master
+
+Then we do the necessary work, making nice commits as we go.
+  git commit 
+
+When we have implemented and tested antigravity, we update our local master and rebase antigravity on top of it (using a pull request branch named, e.g. "antigravity-1"). We also squeeze the antigravity branch commits into a single commit, to make things easier for the upstream maintainer. 
+  git co master
+  git merge upstream/master
+  git checkout -b antigravity-1 origin/master
+  git merge --no-commit --squash antigravity
+  git commit -m "antigravity"
+  git push origin antigravity-1
+
+Ask the maintainer to pull in our antigravity-1 branch; use the pull request button on github.
+
+Once the maintainer has rejected/accepted our antigravity work, we can delete the pull request branch.
+  git push origin --delete antigravity-1 
+
+For more info, read the book, especially this bit; http://git-scm.com/book/en/Distributed-Git-Contributing-to-a-Project#Public-Small-Project
