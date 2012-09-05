@@ -37,7 +37,7 @@
 %%    yawn:start([{packeting,raw},{handler,H}]).
 %%  where
 %%   H=fun(_,<<"q\r\n">>,_)->close;(_,X,[])->{keep,"",X};(_,X,S)->{keep,S,X}end.
-%%  will start a server that echoes it's previous input, and stops when it's
+%%  will start a server that echoes its previous input, and stops when its
 %%  input is "q".
 %% @end
 
