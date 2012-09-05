@@ -8,6 +8,11 @@
 %% yawn is a demo of an Erlang TCP socket server, that happens to include an
 %% embryo of a web server. It is in no way intended for production.
 %% 
+%% Design-wise, there is one process, with the registered name 'yawn', that
+%% listens. When a client connects, we spawn_link a worker and transfer the
+%% socket to it. The socket is never closed; instead the worker just exits.
+%% This is optimized for relatively long-lived workers. But simple.
+%% 
 %% There's only one interesting function; yawn:start/1
 %% The argument is a proplist. The available tags are;
 %%   port - the port number [6666]
@@ -48,11 +53,8 @@
 
 -export([listen_loop/1,worker_loop/3]). % internal exports
 
-default_opts() ->
-  [{port,6666},
-   {packeting,http_bin},
-   {handler,fun handler/3}].
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the API
 stop() ->
   case whereis(yawn) of
     undefined -> ok;
@@ -70,9 +72,26 @@ start(Opts) ->
   yawn ! {go,add_defaults(Opts)},
   whereis(yawn).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% options
+default_opts() ->
+  [{port,6666},
+   {packeting,http_bin},
+   {handler,fun handler/3}].
+
 add_defaults(Opts) ->
   [{K,proplists:get_value(K,Opts,V)} || {K,V} <- default_opts()].
 
+get_opt(Opt,Opts) ->
+  proplists:get_value(Opt,Opts).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the logger
+log(X) ->
+  erlang:display(X).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the main process
 init() ->
   receive
     {go,Opts} -> 
@@ -121,6 +140,8 @@ socket_opts(Opts) ->
    binary,
    {packet,get_opt(packeting,Opts)}].
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the worker
 worker() ->
   receive
     {Socket,Handler} -> worker_loop(Socket,Handler,[])
@@ -146,6 +167,8 @@ send(Socket,Reply) ->
     ok -> ok
   end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% the default handler
 -define(HttpEoh(),http_eoh).
 -define(HttpRequest(Method,Uri,Vsn),{http_request,Method,Uri,Vsn}).
 -define(HttpHeader(Field,Value),{http_header,_,Field,_,Value}).
@@ -160,9 +183,3 @@ handler(http,?HttpRequest(Meth,Uri,_),_) -> {close,flat({Meth,Uri})}.
 
 flat(Term) ->
   lists:flatten(io_lib:fwrite("~p",[Term])).
-
-get_opt(Opt,Opts) ->
-  proplists:get_value(Opt,Opts).
-
-log(X) ->
-  erlang:display(X).
