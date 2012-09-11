@@ -1,0 +1,59 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+      #aCanvas {
+        border: 1px solid #9C9898;
+      }
+    </style>
+    <script>
+      window.animationFrame = (function() {
+      return window.requestAnimationFrame || 
+             window.webkitRequestAnimationFrame || 
+             window.mozRequestAnimationFrame || 
+             window.msRequestAnimationFrame;
+      })();
+
+      function init() {
+        canvas = document.getElementById("aCanvas");
+        animate({canvas: canvas,
+                 context: canvas.getContext("2d"),
+                 x: canvas.width/2,
+                 y: canvas.height/2,
+                 d: 2,
+                 dx: 1,
+                 dy: 1});
+      }
+
+      function animate(s) {
+        // update stage
+        if ( !(0 <= s.x && s.x <= s.canvas.width) ) { s.dx *= -1 }
+        if ( !(0 <= s.y && s.y <= s.canvas.height) ) { s.dy *= -1 }
+
+        s.x += s.dx;
+        s.y += s.dy;
+
+        // clear stage
+        s.context.clearRect(0, 0, s.canvas.width, s.canvas.height);
+
+        // render stage
+        s.context.fillRect(s.x-s.d, s.y-s.d, s.d, s.d);
+
+        // request new frame
+        animationFrame(function() { animate(s); });
+      }
+
+      window.onload = function() {
+        init();
+      };
+
+    </script>
+  </head>
+  <body>
+    <canvas id="aCanvas" width="500" height="600"></canvas>
+  </body>
+</html>
