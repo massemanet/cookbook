@@ -1,0 +1,73 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:           someapp
+# Required-Start:     $remote_fs $network
+# Required-Stop:      $remote_fs $network
+# Default-Start:      2 3 4 5
+# Default-Stop:       0 1 6
+# Short-Description:  Start someapp
+### END INIT INFO
+#
+#  bootscript template
+#  change "someapp" to the name of your app, check that the $ITEM*
+# variables are correct, and save this file as <name of your app>
+#
+# make a link to this file from etc/init.d;
+# ln -s <this file> /etc/init.d/
+#
+# create the runlevel-links like this;
+# sudo update-rc.d someapp defaults 50
+#
+# now this should work;
+# sudo invoke-rc.d someapp start
+# sudo invoke-rc.d someapp stop
+
+ITEM=someapp
+ITEM_STARTMOD=$ITEM
+ITEM_USER=$ITEM
+ITEM_GROUP=$ITEM
+ITEM_ROOTDIR=/home/$ITEM_USER/git/$ITEM
+ITEM_BOOTLOG=/home/$ITEM_USER/boot.log
+ITEM_ERLLOG=/home/$ITEM_USER/erlang.log
+ITEM_LIBDIR=$ITEM_ROOTDIR/ebin
+
+[ -f $ITEMBOOTLOG ] || touch $ITEM_BOOTLOG
+chown $ITEM_GROUP:$ITEM_USER $ITEM_BOOTLOG
+
+item_start() {
+    erl  \
+        -sname $ITEM \
+        -setcookie $ITEM \
+        -boot start_sasl \
+        -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
+        -pa $ITEM_LIBDIR \
+        -run $ITEM_STARTMOD \
+        -detached
+}
+
+out() {
+    flag=""
+    [ "$1" == "-n" ] && flag="-n" && shift
+    echo $flag "$1" >> $ITEM_BOOTLOG
+}
+
+out "`date | tr ' ' '-'` "
+case "$1" in
+    start)
+        out -n "starting $0..."
+        sudo -i -u $ITEM_USER item_start
+        out " done."
+        ;;
+    stop)
+        out -n "stopping..."
+        pkill -KILL -fu $ITEM_USER $ITEM_STARTMOD && out -n " stopped... "
+        out " done."
+        ;;
+    restart | force-reload)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+    *)
+        exit 1
+esac
