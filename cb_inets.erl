@@ -10,22 +10,36 @@
 -export([ start/0
          ,do/3]).
 
-%% starts a server that serves localhost:8989/<module>/do[?/]*
-%% logs errors to /tmp/<module>/errors.log
+%%   starts a server that serves static files from <server_root>
+%%   where <server_root> is /tmp/?MODULE
+%%   it logs errors to <server_root>/errors.log
+%%   when the url is localhost:8989 it will serve <server_root>/index.html
+%%   try e.g. putting this; "<b>bold</b><p><a href='erl/cb_inets/do'>link</a>"
+%% in <server_root>/index.html
+%%   when the url is localhost:8989/erl/<?MODULE>/do[?/]*
+%% it will serve whatever ?MODULE:do/3 returns.
 start() ->
   inets:stop(),
   inets:start(),
-  Root = filename:join("/tmp",?MODULE),
-  inets:start(httpd, [{port, 8989},
-                      {server_name,flat(?MODULE)},
-                      {server_root,ensure(Root++"/")},
-                      {document_root,ensure(Root++"/")},
-                      {modules, [mod_esi,mod_log]},
-                      {error_log,ensure(filename:join(Root,"errors.log"))},
-                      {erl_script_alias, {"", [?MODULE]}},
-                      {erl_script_nocache,true}]).
+  inets:start(httpd, conf()).
 
-%% called when the server sees /<module>/do[/?]*
+conf() ->
+  Root = filename:join("/tmp",?MODULE),
+  [{port, 8989},
+   {server_name,flat(?MODULE)},
+   {server_root,ensure(Root)},
+   {document_root,ensure(Root)},
+   {modules, [mod_alias,mod_esi,mod_get,mod_log]},
+   {error_log,ensure(filename:join(Root,"errors.log"))},
+   {directory_index, ["index.html"]},                                           
+   {erl_script_alias, {"/erl", [?MODULE]}},
+   {erl_script_nocache,true}].
+
+ensure(X) ->
+  filelib:ensure_dir(X++"/"),
+  X.
+
+%% called when the server sees /erl/<?MODULE>/do[/?]*
 %% we can deliver the content in chunks, as long as do/3 does not return
 do(SessionID,Env,Input) ->
   mod_esi:deliver(SessionID,
@@ -44,7 +58,3 @@ do(SessionID,Env,Input) ->
 
 flat(X) ->
   lists:flatten(io_lib:fwrite("~p",[X])).
-
-ensure(X) ->
-  filelib:ensure_dir(X),
-  X.
