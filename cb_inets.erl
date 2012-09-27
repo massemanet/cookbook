@@ -30,10 +30,12 @@ conf() ->
    {server_root,ensure(Root)},
    {document_root,ensure(Root)},
    {modules, [mod_alias,mod_esi,mod_get,mod_log]},
-   {error_log,ensure(filename:join(Root,"errors.log"))},
+   {error_log,filename:join(ensure(Root),"errors.log")},
    {directory_index, ["index.html"]},                                           
    {erl_script_alias, {"/erl", [?MODULE]}},
-   {erl_script_nocache,true}].
+   {mime_types,[{"html","text/html"},
+                {"css","text/css"},
+                {"js","application/javascript"}]}].
 
 ensure(X) ->
   filelib:ensure_dir(X++"/"),
