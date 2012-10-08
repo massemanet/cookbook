@@ -1,0 +1,93 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:           someapp
+# Required-Start:     $remote_fs $network
+# Required-Stop:      $remote_fs $network
+# Default-Start:      2 3 4 5
+# Default-Stop:       0 1 6
+# Short-Description:  Start someapp
+### END INIT INFO
+#
+#  bootscript template
+#  change "someapp" to the name of your app, check that the $ITEM*
+# variables are correct, and save this file as <name of your app>
+#
+# make a link to this file from etc/init.d;
+# ln -s <this file> /etc/init.d/
+#
+# create the runlevel-links like this;
+# sudo update-rc.d someapp defaults 50
+#
+# now this should work;
+# sudo invoke-rc.d someapp start
+# sudo invoke-rc.d someapp stop
+
+export ERL=/opt/bin/erl
+export ITEM=someapp
+export ITEM_STARTMOD=$ITEM
+export ITEM_USER=$ITEM_USER
+export ITEM_GROUP=$ITEM
+export ITEM_LIBDIR=/home/$ITEM_USER/git/$ITEM/ebin
+export ITEM_LOGDIR=/var/log/$ITEM
+export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
+export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
+export SNAME=`echo $ITEM | tr "\-." "_"`
+
+[ -d $ITEM_LOGDIR ] || mkdir $ITEM_LOGDIR
+chown $ITEM_USER:$ITEM_GROUP $ITEM_LOGDIR
+[ -f $ITEM_BOOTLOG ] || touch $ITEM_BOOTLOG
+chown $ITEM_USER:$ITEM_GROUP $ITEM_BOOTLOG
+
+item_start() {
+    $ERL  \
+        -sname $SNAME \
+        -setcookie $ITEM \
+        -boot start_sasl \
+        -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
+        -pa $ITEM_LIBDIR \
+        -run $ITEM_STARTMOD \
+        -detached
+}
+export -f item_start
+
+item_stop() {
+    pkill -KILL -fu $ITEM_USER "run $ITEM_STARTMOD"
+}
+export -f item_stop
+
+item_shell() {
+    $ERL -sname $$ -remsh ${SNAME}@${HOSTNAME} -setcookie $ITEM
+}
+export -f item_shell
+
+out() {
+    flag=""
+    [ "$1" == "-n" ] && flag="-n" && shift
+    echo $flag "$1" >> $ITEM_BOOTLOG
+}
+
+out "`date | tr ' ' '-'` "
+case "$1" in
+    start)
+        out -n "starting $0..."
+        su -pc item_start $ITEM_USER && out -n " started..."
+        out " done."
+        ;;
+    stop)
+        out -n "stopping..."
+        su -pc 'item_stop' $ITEM_USER && out -n " stopped..."
+        out " done."
+        ;;
+    restart | force-reload)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+    attach | shell)
+        out -n "attaching $USER..."
+        su -pc 'item_shell' $ITEM_USER && out -n " attached..."
+        out " done."
+        ;;
+    *)
+        exit 1
+esac
