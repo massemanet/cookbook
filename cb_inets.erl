@@ -10,13 +10,13 @@
 -export([ start/0
          ,do/3]).
 
-%%   starts a server that serves static files from <server_root>
+%%   Starts a server that serves static files from <server_root>
 %%   where <server_root> is /tmp/?MODULE
-%%   it logs errors to <server_root>/errors.log
-%%   when the url is localhost:8989 it will serve <server_root>/index.html
-%%   try e.g. putting this; "<b>bold</b><p><a href='erl/cb_inets/do'>link</a>"
+%%   It logs errors to <server_root>/errors.log
+%%   When the url is localhost:8989 it will serve <server_root>/index.html
+%%   Try e.g. putting this; "<b>bold</b><p><a href='erl/cb_inets/do'>link</a>"
 %% in <server_root>/index.html
-%%   when the url is localhost:8989/erl/<?MODULE>/do[?/]*
+%%   When the url is localhost:8989/erl/<?MODULE>/do[?/]*
 %% it will serve whatever ?MODULE:do/3 returns.
 start() ->
   inets:stop(),
@@ -31,7 +31,7 @@ conf() ->
    {document_root,ensure(Root)},
    {modules, [mod_alias,mod_esi,mod_get,mod_log]},
    {error_log,ensure(filename:join(Root,"errors.log"))},
-   {directory_index, ["index.html"]},                                           
+   {directory_index, ["index.html"]},
    {erl_script_alias, {"/erl", [?MODULE]}},
    {erl_script_nocache,true}].
 
