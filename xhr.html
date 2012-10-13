@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html>
+  <meta charset="utf-8">
+  <head>
+    <script>
+     function load() {
+      function mkhandler() {
+        return function(oEvent) {
+          console.log(this);
+          console.log(oEvent);
+        };
+      }
+      var url =
+// "http://info.cern.ch/";
+ "file:///Users/masse/git/cookbook/xhr.html";
+// "http://massema.net";
+      var oReq = new XMLHttpRequest();
+      oReq.open("GET", url, true);
+      oReq.onloadend = mkhandler(oReq);
+//  oReq.onreadystatechange = mkhandler();
+      oReq.send(null);
+}
+      window.onload = load;
+    </script>
+  </head>
+  <body>
+    <h3> hello </h3>
+  </body>
+</html>
