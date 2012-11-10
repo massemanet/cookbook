@@ -7,12 +7,14 @@ We clone our fork, in order to get a local repo.
 
 We want to be able to keep our fork up to date with the upstream repo, so we set up a remote (cleverly named "upstream").
   git remote add upstream git://github.com/marijnh/CodeMirror.git
+  git fetch upstream
 
 In order to keep our local master up-to-date, we merge from the upstream master into the local master.
   git co master
   git merge upstream/master
+  git push 
 
-The work we do locally is always done in feature branches. We never merge anything into or local master. So, if we want to add antigravity to our project, we do this;
+The work we do locally is always done in feature branches. We never commit anything into or local master. So, if we want to add antigravity to our project, we do this;
   git checkout -b antigravity origin/master
 
 Then we do the necessary work, making nice commits as we go.
