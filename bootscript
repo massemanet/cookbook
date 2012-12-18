@@ -22,13 +22,25 @@
 # sudo invoke-rc.d someapp start
 # sudo invoke-rc.d someapp stop
 
-export ERL=/opt/bin/erl
+tryt() {
+    while [ 0 -lt $# ]; do
+        if 2>/dev/null touch $1/$$ && rm $1/$$; then
+            echo $1
+            return
+        else
+            shift
+        fi
+    done
+    exit -1
+}
+
 export ITEM=someapp
 export ITEM_STARTMOD=$ITEM
-export ITEM_USER=$ITEM_USER
-export ITEM_GROUP=$ITEM
-export ITEM_LIBDIR=/home/$ITEM_USER/git/$ITEM/ebin
-export ITEM_LOGDIR=/var/log/$ITEM
+export ITEM_USER=$ITEM
+export ITEM_LOGDIR=`tryt /var/log /tmp`/$ITEM
+export ITEM_LIBDIR=`eval echo ~$ITEM_USER`/git/$ITEM
+export ERL=`which erl`
+export ITEM_GROUP=`id -g $ITEM_USER`
 export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
 export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
 export SNAME=`echo $ITEM | tr "\-." "_"`
@@ -38,27 +50,37 @@ chown $ITEM_USER:$ITEM_GROUP $ITEM_LOGDIR
 [ -f $ITEM_BOOTLOG ] || touch $ITEM_BOOTLOG
 chown $ITEM_USER:$ITEM_GROUP $ITEM_BOOTLOG
 
+# osx does not have pkill. #fail
+beamgrep() {
+    ps -u "$1" -o pid,command | grep beam | grep "$2" | cut -c-6
+}
+
 item_start() {
-    $ERL  \
+    P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
+    [ -n "$P"] && return 
+    DEPS=$ITEM_LIBDIR/deps
+    [ -d $DEPS ] && for dep in $DEPS/* ; do PAS="$PAS -pa $dep/ebin" ; done
+    sudo -u $ITEM_USER \
+        $ERL  \
         -sname $SNAME \
         -setcookie $ITEM \
         -boot start_sasl \
         -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
-        -pa $ITEM_LIBDIR \
+        -pa $ITEM_LIBDIR/ebin \
+        $PAS \
         -run $ITEM_STARTMOD \
         -detached
 }
-export -f item_start
 
 item_stop() {
-    pkill -KILL -fu $ITEM_USER "run $ITEM_STARTMOD"
+    P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
+    [ -n "$P" ] && sudo -u $ITEM_USER kill -KILL $P
 }
-export -f item_stop
 
 item_shell() {
-    $ERL -sname $$ -remsh ${SNAME}@${HOSTNAME} -setcookie $ITEM
+    HOST=`echo $HOSTNAME | cut -f1 -d"."`
+    sudo -u $ITEM_USER $ERL -sname $$ -remsh ${SNAME}@${HOST} -setcookie $ITEM
 }
-export -f item_shell
 
 out() {
     flag=""
@@ -69,24 +91,26 @@ out() {
 out "`date | tr ' ' '-'` "
 case "$1" in
     start)
+        out "logging to "$ITEM_LOGDIR
         out -n "starting $0..."
-        su -pc item_start $ITEM_USER && out -n " started..."
+        item_start && out -n " started..."
         out " done."
         ;;
     stop)
         out -n "stopping..."
-        su -pc 'item_stop' $ITEM_USER && out -n " stopped..."
+        item_stop && out -n " stopped..."
         out " done."
         ;;
     restart | force-reload)
+        out "restarting."
         $0 stop
         sleep 1
         $0 start
         ;;
     attach | shell)
-        out -n "attaching $USER..."
-        su -pc 'item_shell' $ITEM_USER && out -n " attached..."
-        out " done."
+        out "attaching $USER - $$."
+        item_shell || out -n "Failed... "
+        out "detaching $USER - $$."
         ;;
     *)
         exit 1
