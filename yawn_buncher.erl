@@ -2,6 +2,13 @@
 %%% Created : 10 May 2013 by mats cronqvist <masse@klarna.com>
 
 %% @doc
+%% uses yawn and buncher to aggregate data into bunches.
+%% As an example, try this;
+%%  buncher:start().
+%%  yawn_buncher:start(oo).
+%%  buncher:source().
+%% and do e.g. this;
+%%  curl http://localhost:6666/bunch
 %% @end
 
 -module('yawn_buncher').

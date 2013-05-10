@@ -2,6 +2,11 @@
 %%% Created : 10 May 2013 by mats cronqvist <masse@klarna.com>
 
 %% @doc
+%% A two-faced server.
+%% Receives data (as erlang messages) from some source, and caches then. It
+%% also receives requests to get the data from various processes. Once every
+%% bunch_time, it sends all the cached data to all the requsters.
+%% See yawn_buncher for an example.
 %% @end
 
 -module('buncher').
