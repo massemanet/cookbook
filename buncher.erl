@@ -6,7 +6,9 @@
 
 -module('buncher').
 -author('mats cronqvist').
--export([start/0]).
+-export([start/0,stop/0]).
+
+stop() -> ?MODULE ! quit.
 
 start() -> start([]).
 
@@ -31,6 +33,7 @@ add_defaults(Opts) ->
 init() ->
   receive
     {go,[]} ->
+      set_time(),
       mloop(acc_new())
   end.
 
@@ -38,7 +41,8 @@ mloop(Acc) ->
   receive
     {attach,Pid} -> mloop(acc_append(attaches,Pid,Acc));
     {item,Val}   -> mloop(acc_append(vals,Val,Acc));
-    time         -> send(Acc),set_time(),mloop(acc_new())
+    time         -> send(Acc),set_time(),mloop(acc_new());
+    quit         -> ok
   end.
 
 send(Acc) ->
@@ -50,6 +54,8 @@ send(Acc) ->
 set_time() ->
   erlang:send_after(1000,self(),time).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% hide the implementation of the accumulator
 acc_new() ->
   orddict:from_list([{attaches,[]},{vals,[]}]).
 
