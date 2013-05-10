@@ -7,6 +7,7 @@
 -module('buncher').
 -author('mats cronqvist').
 -export([start/0,stop/0]).
+-export([source/0]).
 
 stop() -> ?MODULE ! quit.
 
@@ -23,7 +24,7 @@ start(Opts) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% options
 default_opts() ->
-  [].
+  [{bunch_time,1000}].
 
 add_defaults(Opts) ->
   [{K,proplists:get_value(K,Opts,V)} || {K,V} <- default_opts()].
@@ -32,16 +33,16 @@ add_defaults(Opts) ->
 %% server
 init() ->
   receive
-    {go,[]} ->
-      set_time(),
-      mloop(acc_new())
+    {go,[{bunch_time,BTime}]} ->
+      set_time(BTime),
+      mloop(BTime,acc_new())
   end.
 
-mloop(Acc) ->
+mloop(BTime,Acc) ->
   receive
-    {attach,Pid} -> mloop(acc_append(attaches,Pid,Acc));
-    {item,Val}   -> mloop(acc_append(vals,Val,Acc));
-    time         -> send(Acc),set_time(),mloop(acc_new());
+    {attach,Pid} -> mloop(BTime,acc_append(attaches,Pid,Acc));
+    {item,Val}   -> mloop(BTime,acc_append(vals,Val,Acc));
+    time         -> send(Acc),set_time(BTime),mloop(BTime,acc_new());
     quit         -> ok
   end.
 
@@ -51,8 +52,8 @@ send(Acc) ->
     Vs -> lists:foreach(fun(P) -> P ! Vs end, acc_get(attaches,Acc))
   end.
 
-set_time() ->
-  erlang:send_after(1000,self(),time).
+set_time(BunchTime) ->
+  erlang:send_after(BunchTime,self(),time).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% hide the implementation of the accumulator
@@ -64,3 +65,13 @@ acc_get(K,A) ->
 
 acc_append(K,V,A) ->
   orddict:append(K,V,A).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% test data source
+source() ->
+  spawn(fun loop/0).
+
+loop() ->
+  timer:sleep(300),
+  buncher ! {item,element(3,now())},
+  loop().

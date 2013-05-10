@@ -17,11 +17,15 @@ start(Name) -> yawn:start(Name,[{handler,fun handler/3}]).
 -define(HttpHeader(Field,Value),{http_header,_,Field,_,Value}).
 -define(HttpError(Value),{http_error,Value}).
 
-handler(tcp,<<"close\r",_/binary>>,_)    -> close;
-handler(tcp,Data,S)                      -> {keep,Data,S};
 handler(http,?HttpEoh(),S)               -> {keep,S};
 handler(http,?HttpError(Val),_)          -> {close,flat(Val)};
 handler(http,?HttpHeader(_,_),S)         -> {keep,S};
-handler(http,?HttpRequest(Meth,Uri,_),_) -> {close,flat({Meth,Uri})}.
+handler(http,?HttpRequest(Meth,Uri,_),S) ->
+  case {Meth,Uri} of
+    {'GET',{abs_path,<<"/bunch">>}} -> buncher ! {attach,self()},{keep,S};
+    _ -> {close,flat({Meth,Uri})}
+  end;
+handler(msg,Data,_) ->
+  {close,flat(Data)}.
 
 flat(Term) -> lists:flatten(io_lib:fwrite("~p",[Term])).
