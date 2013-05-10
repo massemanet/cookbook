@@ -20,9 +20,14 @@
 %%   handler - a fun/3 [yawn:handler/3]
 %%
 %% The handler fun is called when there is a data on the socket. The args are;
-%%   Packeting - tcp | http
+%%   Packeting - 'tcp' | 'http'
 %%   Data - term(); whatever erlang:decode_packet/3 returned.
 %%   State - term(); the previous handler state. Initialized to [].
+%% The handler is also called if the worker process receives data that does
+%% not come from the socket. In that case the args are;
+%%   Packeting - 'msg'
+%%   Data - term();
+%%   State -term(); the handler state
 %% The handler should return one of these;
 %%   close - no reply, close the socket.
 %%   {close,Reply} - send Reply, then close.
@@ -114,7 +119,7 @@ listen_loop(Opts) ->
       init(Opts);
     {ok,Socket} ->
       Worker = spawn_link(fun worker/0),
-      Worker ! {Socket,get_opt(handler,Opts)},
+      Worker ! {init,Socket,get_opt(handler,Opts)},
       socket_handover(Socket,Worker),
       flush_exits(),
       ?MODULE:listen_loop(Opts)
@@ -144,21 +149,30 @@ socket_opts(Opts) ->
 %% the worker
 worker() ->
   receive
-    {Socket,Handler} -> worker_loop(Socket,Handler,[])
+    {init,Socket,Handler} -> worker_loop(Socket,Handler,[])
   end.
 
 worker_loop(Socket,H,HState) ->
   inet:setopts(Socket,[{active,once}]),
+  case recv(Socket,H,HState) of
+    {loop,HS} -> ?MODULE:worker_loop(Socket,H,HS);
+    _ -> ok
+  end.
+
+recv(Socket,H,HState) ->
   receive
-    {tcp_closed,Socket} -> ok;
-    {tcp_error, Socket, R} -> log({socket_closed,Socket,R});
-    {Packeting,Socket,Data} ->
-      case H(Packeting,Data,HState) of
-        close           -> ok;
-        {keep,HS}       -> ?MODULE:worker_loop(Socket,H,HS);
-        {close,Reply}   -> send(Socket,Reply);
-        {keep,Reply,HS} -> send(Socket,Reply),?MODULE:worker_loop(Socket,H,HS)
-      end
+    {tcp_closed,Socket}     -> ok;
+    {tcp_error, Socket, R}  -> log({socket_closed,Socket,R});
+    {Packeting,Socket,Data} -> handle(Socket,Packeting,Data,H,HState);
+    Data                    -> handle(Socket,msg,Data,H,HState)
+  end.
+
+handle(Socket,Packeting,Data,H,HState) ->
+  case H(Packeting,Data,HState) of
+    close           -> ok;
+    {keep,HS}       -> {loop,HS};
+    {close,Reply}   -> send(Socket,Reply);
+    {keep,Reply,HS} -> send(Socket,Reply),{loop,HS}
   end.
 
 send(Socket,Reply) ->
