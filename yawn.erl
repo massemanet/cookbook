@@ -4,34 +4,34 @@
 %% @doc
 %% Yet Another Webserver, Not.
 %%
-%% There are already hundreds of web servers written in Erlang. 
+%% There are already hundreds of web servers written in Erlang.
 %% yawn is a demo of an Erlang TCP socket server, that happens to include an
 %% embryo of a web server. It is in no way intended for production.
-%% 
+%%
 %% Design-wise, there is one process, with the registered name 'yawn', that
 %% listens. When a client connects, we spawn_link a worker and transfer the
 %% socket to it. The socket is never closed; instead the worker just exits.
 %% This is optimized for relatively long-lived workers. But simple.
-%% 
+%%
 %% There's only one interesting function; yawn:start/1
 %% The argument is a proplist. The available tags are;
 %%   port - the port number [6666]
 %%   packeting - as per erlang:decode_packet/3 [http_bin]
 %%   handler - a fun/3 [yawn:handler/3]
-%% 
-%% The handler fun is called when there is a data on the socket. The args are; 
+%%
+%% The handler fun is called when there is a data on the socket. The args are;
 %%   Packeting - tcp | http
 %%   Data - term(); whatever erlang:decode_packet/3 returned.
 %%   State - term(); the previous handler state. Initialized to [].
 %% The handler should return one of these;
-%%  close - no reply, close the socket.
-%%  {close,Reply} - send Reply, then close.
-%%  {keep,State} - don't close the socket, send no reply.
-%%  {keep,Reply,State} - send Reply, don't close the socket.
+%%   close - no reply, close the socket.
+%%   {close,Reply} - send Reply, then close.
+%%   {keep,State} - send no reply, don't close the socket.
+%%   {keep,Reply,State} - send Reply, don't close the socket.
 %%
 %% Examples;
 %%    yawn:start().
-%%  will start a server listening to port 6666, expecting http data, and 
+%%  will start a server listening to port 6666, expecting http data, and
 %%  replying with a representation of the http request.
 %%
 %%    yawn:start([{packeting,raw}]).
@@ -94,7 +94,7 @@ log(X) ->
 %% the main process
 init() ->
   receive
-    {go,Opts} -> 
+    {go,Opts} ->
       try init(Opts)
       catch error:R -> log({error,R})
       end
@@ -152,7 +152,7 @@ worker_loop(Socket,H,HState) ->
   receive
     {tcp_closed,Socket} -> ok;
     {tcp_error, Socket, R} -> log({socket_closed,Socket,R});
-    {Packeting,Socket,Data} -> 
+    {Packeting,Socket,Data} ->
       case H(Packeting,Data,HState) of
         close           -> ok;
         {keep,HS}       -> ?MODULE:worker_loop(Socket,H,HS);
