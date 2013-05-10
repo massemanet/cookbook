@@ -1,0 +1,24 @@
+We want an alphanumeric ID. We want it to be short, unique and not contain any naughty words.
+
+We use chars from the set "BCDFGHJKLMNPQRSTVWXZ0123456789", non case sensitive. That's 30 chars, which means each position gives us roughly 5 bits. The ID is a bit pattern, that we interpret as a base 30 integer. We substitute 
+
+We want a scheme that will extend just by adding more chars to the ID. We don't want to use a site/cluster ID, because we want to avoid the headache of a distributed counter.
+
+ , the ID consists of a machine ID, and a per-machine counter. The machine ID is the first (2*N)-8 bits, where N is the number of chars in the ID.
+
+If we use 7 chars, we get 35 bits. 
+
+6 bits = machine ID.
+29 bits = per-machine counter
+
+The scheme accommodates 64 machines. Each machine can issue ~500 million ID's.
+
+If we use 8 chars, we get 40 bits.
+
+8 bits = machine ID
+32 bits = per-machine counter
+
+Etcetera.
+
+This gives us 256 machine IDs, and ~4 billion IDs per machine. See e.g.
+"External Perfect Hashing for Very Large Key Sets", Botelho & Ziviani.

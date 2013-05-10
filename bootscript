@@ -34,16 +34,19 @@ tryt() {
     exit -1
 }
 
+# (hopefully) self-explanatory config parameters
+# it should not be necessary to change anything outside of this block
 export ITEM=someapp
 export ITEM_STARTMOD=$ITEM
 export ITEM_USER=$ITEM
 export ITEM_LOGDIR=`tryt /var/log /tmp`/$ITEM
 export ITEM_LIBDIR=`eval echo ~$ITEM_USER`/git/$ITEM
-export ERL=`which erl`
+export ITEM_DEPS="$ITEM_LIBDIR/deps/*"
+export ITEM_ERL=`which erl`
 export ITEM_GROUP=`id -g $ITEM_USER`
 export ITEM_BOOTLOG=$ITEM_LOGDIR/boot.log
 export ITEM_ERLLOG=$ITEM_LOGDIR/erlang.log
-export SNAME=`echo $ITEM | tr "\-." "_"`
+export ITEM_SNAME=`echo $ITEM | tr "\-." "_"`
 
 [ -d $ITEM_LOGDIR ] || mkdir $ITEM_LOGDIR
 chown $ITEM_USER:$ITEM_GROUP $ITEM_LOGDIR
@@ -57,12 +60,13 @@ beamgrep() {
 
 item_start() {
     P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
-    [ -n "$P"] && return 
-    DEPS=$ITEM_LIBDIR/deps
-    [ -d $DEPS ] && for dep in $DEPS/* ; do PAS="$PAS -pa $dep/ebin" ; done
+    [ -n "$P" ] && return
+    for dep in $ITEM_DEPS; do
+        [ -d $dep/ebin ] && PAS="$PAS -pa $dep/ebin"
+    done
     sudo -u $ITEM_USER \
-        $ERL  \
-        -sname $SNAME \
+        $ITEM_ERL  \
+        -sname $ITEM_SNAME \
         -setcookie $ITEM \
         -boot start_sasl \
         -kernel error_logger "{file,\"$ITEM_ERLLOG\"}" \
@@ -79,7 +83,9 @@ item_stop() {
 
 item_shell() {
     HOST=`echo $HOSTNAME | cut -f1 -d"."`
-    sudo -u $ITEM_USER $ERL -sname $$ -remsh ${SNAME}@${HOST} -setcookie $ITEM
+    sudo -u $ITEM_USER \
+        $ITEM_ERL \
+        -sname $$ -remsh ${ITEM_SNAME}@${HOST} -setcookie $ITEM
 }
 
 out() {
@@ -90,6 +96,10 @@ out() {
 
 out "`date | tr ' ' '-'` "
 case "$1" in
+    status)
+        P=`beamgrep $ITEM_USER "run $ITEM_STARTMOD"`
+        [ -n "$P" ] && echo $P
+        ;;
     start)
         out "logging to "$ITEM_LOGDIR
         out -n "starting $0..."
