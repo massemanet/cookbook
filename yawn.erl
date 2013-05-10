@@ -49,28 +49,28 @@
 -module('yawn').
 -author('mats cronqvist').
 
--export([start/0,start/1,stop/0]). % API
+-export([start/1,start/2,stop/1]). % API
 
 -export([listen_loop/1,worker_loop/3]). % internal exports
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% the API
-stop() ->
-  case whereis(yawn) of
+stop(Name) ->
+  case whereis(Name) of
     undefined -> ok;
     Pid       -> exit(Pid,kill)
   end.
 
-start() ->
-  start([]).
+start(Name) ->
+  start(Name,[]).
 
-start(Opts) ->
-  case whereis(yawn) of
-    undefined -> register(yawn,spawn(fun init/0));
+start(Name,Opts) ->
+  case whereis(Name) of
+    undefined -> register(Name,spawn(fun init/0));
     _         -> ok
   end,
-  yawn ! {go,add_defaults(Opts)},
-  whereis(yawn).
+  Name ! {go,add_defaults(Opts)},
+  whereis(Name).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% options
