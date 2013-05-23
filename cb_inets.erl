@@ -45,7 +45,7 @@ ensure(X) ->
 %% we can deliver the content in chunks, as long as do/3 does not return
 do(SessionID,Env,Input) ->
   mod_esi:deliver(SessionID,
-                  ["Content-Type: text/html\r\n\r\n", 
+                  ["Content-Type: text/html\r\n\r\n",
                    "<html><title>I am ",
                    flat(node()),
                    "</title><body><h2>",

@@ -22,7 +22,7 @@ go() ->
 
 mk_table() ->
   spawn(fun()->
-            try 
+            try
               register(?MODULE,self()),
               ets:new(?MODULE,[named_table,ordered_set,public]),
               receive _ -> ok end
@@ -118,16 +118,15 @@ edge(I0,Inc,Tree) ->
     {} -> []
   end.
 
-next_subtree(I,Inc,Tree) -> 
+next_subtree(I,Inc,Tree) ->
   try element(I,Tree) of
     {} -> next_subtree(I+Inc,Inc,Tree);
     {K,_} -> {key,[I|K]};
     Subtree -> {I,Subtree}
-  catch 
+  catch
     _:_ -> {}
   end.
 
 octree_prev(_,_) ->ok.
 
 octree_next(Key,Tree) ->
-  

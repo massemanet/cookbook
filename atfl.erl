@@ -2,7 +2,7 @@
 %%% Created :  8 Oct 2012 by mats cronqvist <masse@klarna.com>
 
 %% @doc
-%% A tiny filter language. 
+%% A tiny filter language.
 %% Things like these;
 %% atfl:run(atfl:compile("ets:inet_db.3"),hostname).
 %% atfl:run(atfl:compile("erlang:process_info.current_function.1"),self()).
