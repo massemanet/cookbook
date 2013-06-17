@@ -24,7 +24,7 @@ acc_app(Str,Acc) ->
     [Name,_,UID|_] -> [{UID,Name}|Acc];
     _              -> Acc
   end.
-  
+
 check([{UID,Name}|R], [{UID,N,OtherName}|Acc]) ->
   check(R,[{UID,N+1,OtherName++":"++Name}|Acc]);
 check([{UID,Name}|R],Acc) ->
