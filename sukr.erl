@@ -2,7 +2,7 @@
 %%% Created : 31 Jan 2013 by mats cronqvist <masse@klarna.com>
 
 %% @doc
-%% Short Unique Klarna Reference
+%% Short Unique Koncise Reference
 %% @end
 
 -module('sukr').
@@ -31,11 +31,11 @@ decompose(SUKR) ->
   {C,I}.
 
 %% encodes integer to base 30 string
-tobase30(X) ->  
+tobase30(X) ->
   [tr_out(C) || C <- lists:flatten(io_lib:fwrite("~.30B",[X]))].
 
 %% decodes base 30 string to integer
-frombase30(X) -> 
+frombase30(X) ->
   {ok,[S],[]} = io_lib:fread("~#","30#"++[tr_in(C) || C <- X]), S.
 
 tr_out($A) -> $V;
@@ -61,7 +61,7 @@ lengths(C,I,N) ->
   lengths(case C < (1 bsl CL) of true -> 0; false -> C end,
           case I < (1 bsl IL) of true -> 0; false -> I end,
           N+1).
-    
+
 %% N is number of chars in SUKR
 %% returns length in bits of; {total, counter, machineID}
 lengths(N) ->
