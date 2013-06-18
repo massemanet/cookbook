@@ -52,14 +52,14 @@ tr_in(C)  -> C.
 
 %% C is value of counter; I is value of machineID
 %% returns length in bits of {total, counter, machineID}
-lengths(C,I) -> lengths(C,I,4).
-lengths(0,0,N) -> lengths(N-1);
-lengths(C,0,11)-> exit({c_too_big,C});
-lengths(0,I,11)-> exit({i_too_big,I});
+lengths(C,I) -> lengths(C,I,7).
+lengths(x,x,N) -> lengths(N-1);
+lengths(C,x,11)-> exit({c_too_big,C});
+lengths(x,I,11)-> exit({i_too_big,I});
 lengths(C,I,N) ->
   {_,CL,IL} = lengths(N),
-  lengths(case C < (1 bsl CL) of true -> 0; false -> C end,
-          case I < (1 bsl IL) of true -> 0; false -> I end,
+  lengths(case C < (1 bsl CL) of true -> x; false -> C end,
+          case I < (1 bsl IL) of true -> x; false -> I end,
           N+1).
 
 %% N is number of chars in SUKR
