@@ -7,14 +7,14 @@
 
 -module('sukr').
 -author('mats cronqvist').
--export([compose/2,decompose/1,
+-export([compose_short/2,decompose_short/1,
          compose_long/2,decompose_long/1
         ]).
 
 %% construct a sukr
 %% C is an integer; Counter
 %% I is an integer; machine ID
-compose(C,I) ->
+compose_short(C,I) ->
   {_,_,_,SUKR} = mk_sukr(C,I),
   tobase30(SUKR).
 
@@ -34,7 +34,7 @@ mk_sukr(C,I) ->
 %% validate and extract Counter and machine ID from a base30-SUKR.
 %% (worthless exept for testing.)
 %% SUKR is a string.
-decompose(SUKR) ->
+decompose_short(SUKR) ->
   {L,CL,IL} = lengths(length(SUKR)),
   S = frombase30(SUKR),
   <<PC:1,PI:1,1:1,C:CL,I:IL>> = <<S:L>>,
