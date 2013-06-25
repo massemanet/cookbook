@@ -15,21 +15,22 @@
 %% C is an integer; Counter
 %% I is an integer; machine ID
 compose_short(C,I) ->
-  {_,_,_,SUKR} = mk_sukr(C,I),
-  tobase30(SUKR).
+  {_,L,_,_,SUKR} = mk_sukr(C,I),
+  <<IS:L>> = SUKR,
+  tobase30(IS).
 
 %% 19-digit decimal encoding
 %% uses 63 bits, 61:st bit is always set.
 compose_long(C,I) ->
-  {N,PC,PI,SUKR} = mk_sukr(C,I),
-  Pad = 55-bit_size(SUKR),
+  {N,L,PC,PI,SUKR} = mk_sukr(C,I),
+  Pad = 55-L,
   tobase10(<<PC:1,PI:1,3:2,N:4,<<0:Pad>>/bitstring,SUKR/bitstring>>).
 
 mk_sukr(C,I) ->
-  {N,{_,CL,IL}} = lengths(C,I),
+  {N,{L,CL,IL}} = lengths(C,I),
   PC = parity(C),
   PI = parity(I),
-  {N,PC,PI,<<PC:1,PI:1,1:1,C:CL,I:IL>>}.
+  {N,L,PC,PI,<<PC:1,PI:1,1:1,C:CL,I:IL>>}.
 
 %% validate and extract Counter and machine ID from a base30-SUKR.
 %% (worthless exept for testing.)
@@ -56,8 +57,8 @@ decompose_long(Str) ->
   {C,I}.
 
 %% encodes integer to base 30 string
-tobase30(X) ->
-  [tr_out(C) || C <- lists:flatten(io_lib:fwrite("~.30B",[X]))].
+tobase30(I) ->
+  [tr_out(C) || C <- lists:flatten(io_lib:fwrite("~.30B",[I]))].
 
 tobase10(<<I:63>>) ->
   integer_to_list(I).
