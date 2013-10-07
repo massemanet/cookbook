@@ -24,7 +24,7 @@ When we have implemented and tested antigravity, we update our local master and 
   git co master
   git merge upstream/master
   git push
-  git checkout -b antigravity-1 origin/master
+  git checkout -b antigravity-1 master
   git log antigravity  ^antigravity-1
   git merge --no-commit --squash antigravity
   git commit -m "antigravity"
