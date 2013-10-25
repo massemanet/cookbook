@@ -21,10 +21,13 @@ Then we do the necessary work, making nice commits as we go.
   git commit
 
 When we have implemented and tested antigravity, we update our local master and rebase antigravity on top of it (using a pull request branch named, e.g. "antigravity-1"). We also squeeze the antigravity branch commits into a single commit, to make things easier for the upstream maintainer.
+  # synch with upstream
+  git fetch upstream
   git co master
   git merge upstream/master
   git push
-  git checkout -b antigravity-1 master
+  # create pull request branch and squash work from your feature branch onto it
+  git checkout -b antigravity-1 origin/master
   git log antigravity  ^antigravity-1
   git merge --no-commit --squash antigravity
   git commit -m "antigravity"
