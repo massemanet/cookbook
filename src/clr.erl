@@ -127,6 +127,8 @@ next_subtree(I,Inc,Tree) ->
     _:_ -> {}
   end.
 
-octree_prev(_,_) ->ok.
+octree_prev(_,_) ->
+  ok.
 
-octree_next(Key,Tree) ->
+octree_next(_Key,_Tree) ->
+  ok.

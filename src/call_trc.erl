@@ -4,7 +4,7 @@
 %% @doc
 %% @end
 
--module('blerg').
+-module('call_trc').
 -author('mats cronqvist').
 -export([go/0]).
 

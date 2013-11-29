@@ -1,6 +1,6 @@
 .eunit
-deps
-priv
+/bin/cnode
+/ebin/
 *.o
 *.beam
 *.plt

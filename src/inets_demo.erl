@@ -5,7 +5,7 @@
 %% a pretty much minimal example of how to start an inets http server
 %% @end
 
--module('cb_inets').
+-module('inets_demo').
 -author('mats cronqvist').
 -export([ start/0
          ,do/3]).
@@ -14,7 +14,7 @@
 %%   where <server_root> is /tmp/?MODULE
 %%   It logs errors to <server_root>/errors.log
 %%   When the url is localhost:8989 it will serve <server_root>/index.html
-%%   Try e.g. putting this; "<b>bold</b><p><a href='erl/cb_inets/do'>link</a>"
+%%   Try e.g. putting this; "<b>bold</b><p><a href='erl/inets_demo/do'>link</a>"
 %% in <server_root>/index.html
 %%   When the url is localhost:8989/erl/<?MODULE>/do[?/]*
 %% it will serve whatever ?MODULE:do/3 returns.
