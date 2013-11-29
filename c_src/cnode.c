@@ -1,6 +1,6 @@
-/* cnode_s.c */
-
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -10,19 +10,27 @@
 
 #define BUFSIZE 1000
 
+int my_listen(int);
+int foo(int);
+int bar(int);
+
 int main(int argc, char **argv) {
   int port;                                /* Listen port number */
   int listen;                              /* Listen socket */
   int fd;                                  /* fd to Erlang node */
   ErlConnect conn;                         /* Connection data */
 
-  int loop = 1;                            /* Loop flag */
   int got;                                 /* Result of receive */
   unsigned char buf[BUFSIZE];              /* Buffer for incoming message */
   ErlMessage emsg;                         /* Incoming message */
 
   ETERM *fromp, *tuplep, *fnp, *argp, *resp;
   int res;
+
+  if (argc < 2) {
+    fprintf(stderr,"Usage: %s portnumber\n",argv[0]);
+    return 1;
+  }
 
   port = atoi(argv[1]);
 
@@ -42,13 +50,13 @@ int main(int argc, char **argv) {
     erl_err_quit("erl_accept");
   fprintf(stderr, "Connected to %s\n\r", conn.nodename);
 
-  while (loop) {
+  while (1) {
 
     got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
     if (got == ERL_TICK) {
       /* ignore */
     } else if (got == ERL_ERROR) {
-      loop = 0;
+      return 0;
     } else {
 
       if (emsg.type == ERL_REG_SEND) {
@@ -72,7 +80,8 @@ int main(int argc, char **argv) {
         erl_free_term(resp);
       }
     }
-  } /* while */
+  }
+  return 0;
 }
 
 
