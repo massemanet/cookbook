@@ -1,5 +1,5 @@
 .eunit
-/bin/cnode
+/bin/*[^sh]
 /ebin/
 *.o
 *.beam
