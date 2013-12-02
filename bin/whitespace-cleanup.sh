@@ -8,8 +8,11 @@ fi
 
 for f in $filepattern ; do
     if [ -f "$f" ] ; then
+        echo -n $f
         2>/dev/null emacs -batch "$f" \
-            --eval "(progn(whitespace-cleanup))" \
+            --eval "(progn(whitespace-cleanup)
+                    (untabify (point-min) (point-max)))" \
             -f save-buffer
+        echo " $?"
     fi
 done
