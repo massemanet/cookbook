@@ -4,9 +4,7 @@
 #include <dlfcn.h>
 #include <sys/utsname.h>
 
-int
-main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   void *handle;
   double (*cosine)(double);
   char *error;
