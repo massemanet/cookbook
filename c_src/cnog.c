@@ -40,7 +40,7 @@ static bool get_fpointer(char *func, ei_x_buff *xbuf,
   if ( ! library ) library = dlopen(NULL,0);
   dlerror();                                    /* Clear any existing error */
   *(void **) (&funcp) = dlsym(library, func);   /* this is where the magic...*/
-  if ( (error = dlerror()) == NULL ) return true;
+  if ( (error = dlerror()) == NULL ) return true; /* \o/ it worked! */
 
   fprintf(stderr, "could not find '%s', error %s\n", func, error);
   cnog_enc_2_error(xbuf, "no_such_function");
