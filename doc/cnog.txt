@@ -1,0 +1,6 @@
+./bin/cnog foo valkyria foo secretcookie cnognode 16
+
+register(foo,self()).
+Shell got {{<6916.3.0>,handshake},[]}
+CNOG = list_to_pid("<6916.3.0>").
+CNOG![{cos,[2.00]}].
