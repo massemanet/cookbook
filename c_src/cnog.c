@@ -3,7 +3,6 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <assert.h>
-#include "ei.h"
 #include "cnog.h"
 
 ei_cnode ec;                    /* the ei cnode description struct */

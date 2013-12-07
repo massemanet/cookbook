@@ -1,3 +1,4 @@
+#include "ei.h"
 void cnog_wrap_ans(char* tag, ei_x_buff* xbuf);
 void cnog_wrap_reply(char* tag, ei_x_buff* xbuf);
 void cnog_enc_2_error(ei_x_buff *xbuf, char *err);
