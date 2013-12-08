@@ -11,10 +11,9 @@
 /***************************************************************************/
 
 void cnog_wrap_ans(char* tag, ei_x_buff* xbuf) {
-  extern ei_cnode ec;
   ei_x_encode_tuple_header(xbuf,2);
   ei_x_encode_tuple_header(xbuf,2);
-  ei_x_encode_pid(xbuf, ei_self(&ec));
+  ei_x_encode_pid(xbuf, cnog_self());
   ei_x_encode_atom(xbuf, tag);
 }
 

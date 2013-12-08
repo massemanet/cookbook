@@ -5,19 +5,20 @@
 #include <assert.h>
 #include "cnog.h"
 
-ei_cnode ec;                    /* the ei cnode description struct */
-static int fd;                  /* fd to remote Erlang node */
-static char* rem_regname;       /* process name on remote Erlang node */
-static void* library;           /* handle for dlopen */
+static ei_cnode ec;                    /* the ei cnode description struct */
+
+erlang_pid *cnog_self(void) {
+  return ei_self(&ec);
+}
 
 static void ABEND(char* reason) {
   printf("ABEND: %s\n", reason);
   exit(1);
 }
 
-void cnog_send(ei_x_buff *xbuf) {
+void cnog_send(ei_x_buff *xbuf, cnog_dest *dest) {
 
-  if ( ei_reg_send(&ec, fd, rem_regname, xbuf->buff, xbuf->index) )
+  if ( ei_send(dest->fd, &dest->pid, xbuf->buff, xbuf->index) )
     ABEND("bad send");
 }
 
@@ -26,13 +27,13 @@ static void make_xbuf(ei_x_buff *xbuf) {
   cnog_wrap_ans("reply",xbuf);
 }
 
-static void send_xbuf(ei_x_buff *xbuf){
-  cnog_send(xbuf);
+static void send_xbuf(ei_x_buff *xbuf, cnog_dest *dest){
+  cnog_send(xbuf, dest);
   ei_x_free(xbuf);
 }
 
 static bool get_fpointer(char *func, ei_x_buff *xbuf, void **funcp) {
-
+  static void* library;
   char *error;
 
   if ( ! library ) library = dlopen(NULL,0);
@@ -68,21 +69,21 @@ static bool make_reply(ei_x_buff *xbuf, char *buff, int *index) {
   return false;
 }
 
-static void send_replies(char *buff, int *index) {
+static void send_replies(char *buff, int *index, cnog_dest *dest) {
   ei_x_buff xbuf;
   int arity, i;
 
   make_xbuf(&xbuf);
 
   if ( (arity = cnog_get_list(&xbuf, buff, index)) < 0 ) {
-    send_xbuf(&xbuf);
+    send_xbuf(&xbuf, dest);
     return;
   }
 
   for (i = 0; i < arity; i++) {
     if ( ((i+1)%1000) == 0 ) {
       ei_x_encode_empty_list(&xbuf);
-      send_xbuf(&xbuf);
+      send_xbuf(&xbuf, dest);
       make_xbuf(&xbuf);
     }
     ei_x_encode_list_header(&xbuf, 1);
@@ -91,31 +92,30 @@ static void send_replies(char *buff, int *index) {
   }
 
   ei_x_encode_empty_list(&xbuf);
-  send_xbuf(&xbuf);
+  send_xbuf(&xbuf, dest);
 }
 
-static void reply(erlang_msg *msg, ei_x_buff *recv_x_buf) {
+static void reply(ei_x_buff *recv_x_buf, cnog_dest *dest) {
   int index = 0;
   int version;
 
   ei_decode_version(recv_x_buf->buff, &index, &version);
-  send_replies(recv_x_buf->buff, &index);
+  send_replies(recv_x_buf->buff, &index, dest);
 }
 
-static bool cnog_receive(void) {
+static bool cnog_receive(cnog_dest *dest) {
   erlang_msg msg;
   ei_x_buff xbuf;
 
   ei_x_new_with_version(&xbuf);
-  switch ( ei_xreceive_msg(fd, &msg, &xbuf) ){
-  case ERL_TICK:
-    break;                      /* ignore */
+  switch ( ei_xreceive_msg(dest->fd, &msg, &xbuf) ){
   case ERL_MSG:
     switch (msg.msgtype) {
-    case ERL_SEND:
     case ERL_REG_SEND:
-      reply(&msg, &xbuf);
+      dest->pid = msg.from;
+      reply(&xbuf, dest);
       break;
+    case ERL_SEND:
     case ERL_LINK:
     case ERL_UNLINK:
     case ERL_GROUP_LEADER:
@@ -126,6 +126,8 @@ static bool cnog_receive(void) {
       return false;             /* die */
     }
     break;
+  case ERL_TICK:
+    break;                      /* ignore */
   case ERL_ERROR:
     return false;               /* die */
   }
@@ -133,23 +135,23 @@ static bool cnog_receive(void) {
   return true;
 }
 
-static int cnog_loop(void) {
+static int cnog_loop(cnog_dest *dest) {
   while (1) {
-    if ( ! cnog_receive() ) return 1;
+    if ( ! cnog_receive(dest) ) return 1;
   }
 }
 
 #define REMNODE           argv[1]
 #define REMHOST           argv[2]
-#define REMREG            argv[3]
-#define COOKIE            argv[4]
-#define NODE_NAME         argv[5]
-#define ERL_DIST_VSN atoi(argv[6])
+#define COOKIE            argv[3]
+#define NODE_NAME         argv[4]
+#define ERL_DIST_VSN atoi(argv[5])
 
-static void cnog_start_cnode(char **argv) {
+static void cnog_start_cnode(char **argv, cnog_dest *dest) {
   char rem_node_name[MAXATOMLEN] = "";  /* other node name */
   ei_x_buff xbuf;
-  erlang_pid *self = ei_self(&ec);
+  erlang_pid *self = cnog_self();
+  int fd;
 
   strcat(rem_node_name,REMNODE);
   strcat(rem_node_name,"@");
@@ -166,6 +168,7 @@ static void cnog_start_cnode(char **argv) {
     ABEND("ei_connect failed.\nwrong cookie? erl-dist version mismatch?");
 
   self->num = fd;               /* bug?? in ei_reg_send_tmo */
+  dest->fd = fd;
 
   ei_x_new_with_version(&xbuf);
   cnog_wrap_ans("handshake", &xbuf);
@@ -175,14 +178,15 @@ static void cnog_start_cnode(char **argv) {
 }
 
 int main(int argc, char **argv){
+  cnog_dest dest;
 
   if ( argc != 7 ){
-    printf("Usage: %s node host regname cookie node_name erl_dist_vsn\n",
+    printf("Usage: %s node host cookie node_name erl_dist_vsn\n",
             argv[0]);
     return 1;
   }
 
-  cnog_start_cnode(argv);
-  cnog_loop();
+  cnog_start_cnode(argv, &dest);
+  cnog_loop(&dest);
   return 0;
 }

@@ -1,7 +1,7 @@
 
 1> register(foo,self()).
 
-$ ./bin/cnog foo valkyria foo secretcookie cnognode 16
+$ ./bin/cnog foo valkyria secretcookie cnognode 16
 
 2> flush().
 Shell got {{<6916.3.0>,handshake},[]}

@@ -7,7 +7,6 @@
 /*******************************/
 bool cnog_math_cos(int ARI, ei_x_buff *XBUF, char *B, int *I){
 
-
   double angle;
   double R; /* return value */
 

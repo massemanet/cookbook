@@ -1,4 +1,10 @@
 #include "ei.h"
+
+typedef struct {
+  erlang_pid pid;
+  int fd;
+} cnog_dest;
+
 void cnog_wrap_ans(char* tag, ei_x_buff* xbuf);
 void cnog_wrap_reply(char* tag, ei_x_buff* xbuf);
 void cnog_enc_2_error(ei_x_buff *xbuf, char *err);
