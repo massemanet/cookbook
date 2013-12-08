@@ -31,15 +31,14 @@ static void send_xbuf(ei_x_buff *xbuf){
   ei_x_free(xbuf);
 }
 
-static bool get_fpointer(char *func, ei_x_buff *xbuf,
-                         bool (*funcp)(int, ei_x_buff *, char *, int *)) {
+static bool get_fpointer(char *func, ei_x_buff *xbuf, void **funcp) {
 
   char *error;
 
   if ( ! library ) library = dlopen(NULL,0);
   dlerror();                                    /* Clear any existing error */
-  *(void **) (&funcp) = dlsym(library, func);   /* this is where the magic...*/
-  if ( (error = dlerror()) == NULL ) return true; /* \o/ it worked! */
+  *funcp = dlsym(library, func);          /* this is where the magic happens */
+  if ( (error = dlerror()) == NULL ) return true;         /* \o/ it worked! */
 
   fprintf(stderr, "could not find '%s', error %s\n", func, error);
   cnog_enc_2_error(xbuf, "no_such_function");
@@ -59,7 +58,7 @@ static bool make_reply(ei_x_buff *xbuf, char *buff, int *index) {
        ! ((arity = cnog_get_list(xbuf, buff, index)) > -1) )
     return false;
 
-  if ( get_fpointer(cmd, xbuf, funcp) &&
+  if ( get_fpointer(cmd, xbuf, (void *)&funcp) &&
        (*funcp)(arity, xbuf, buff, index) ) {
     assert( ei_decode_list_header(buff,index,&k) == 0 );
     assert( k == 0 );
