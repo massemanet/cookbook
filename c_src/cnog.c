@@ -149,14 +149,12 @@ static int cnog_loop(cnog_dest *dest) {
 
 static void cnog_start_cnode(char **argv, cnog_dest *dest) {
   char rem_node_name[MAXATOMLEN] = "";  /* other node name */
-  ei_x_buff xbuf;
   erlang_pid *self = cnog_self();
   int fd;
 
   strcat(rem_node_name,REMNODE);
   strcat(rem_node_name,"@");
   strcat(rem_node_name,REMHOST);
-  rem_regname = strdup(REMREG);
   printf("I am %s, you are %s (%d)\n", NODE_NAME, rem_node_name, ERL_DIST_VSN);
 
   ei_set_compat_rel(ERL_DIST_VSN); /* erlnode version of dist. protocol */
@@ -170,11 +168,12 @@ static void cnog_start_cnode(char **argv, cnog_dest *dest) {
   self->num = fd;               /* bug?? in ei_reg_send_tmo */
   dest->fd = fd;
 
-  ei_x_new_with_version(&xbuf);
-  cnog_wrap_ans("handshake", &xbuf);
-  ei_x_encode_empty_list(&xbuf);
-  cnog_send(&xbuf);
-  ei_x_free(&xbuf);
+  /* ei_x_buff xbuf; */
+  /* ei_x_new_with_version(&xbuf); */
+  /* cnog_wrap_ans("handshake", &xbuf); */
+  /* ei_x_encode_empty_list(&xbuf); */
+  /* cnog_send(&xbuf); */
+  /* ei_x_free(&xbuf); */
 }
 
 int main(int argc, char **argv){

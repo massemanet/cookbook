@@ -6,7 +6,8 @@ all:
 	@$(REBAR) compile
 
 clean:
-	find . -name "*~" -exec rm {} \;
+	@find . -name "*~" -exec rm {} \;
+	@find . -name "*.o" -exec rm {} \;
 	@$(REBAR) clean
 
 .PHONY: cnog
