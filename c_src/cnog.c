@@ -179,9 +179,8 @@ static void cnog_start_cnode(char **argv, cnog_dest *dest) {
 int main(int argc, char **argv){
   cnog_dest dest;
 
-  if ( argc != 7 ){
-    printf("Usage: %s node host cookie node_name erl_dist_vsn\n",
-            argv[0]);
+  if ( argc != 6 ){
+    printf("Usage: %s node host cookie node_name erl_dist_vsn\n", argv[0]);
     return 1;
   }
 
