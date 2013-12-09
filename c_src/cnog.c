@@ -37,9 +37,9 @@ static bool get_fpointer(char *func, ei_x_buff *xbuf, void **funcp) {
   char *error;
 
   if ( ! library ) library = dlopen(NULL,0);
-  dlerror();                                    /* Clear any existing error */
+  dlerror();                                     /* Clear any existing error */
   *funcp = dlsym(library, func);          /* this is where the magic happens */
-  if ( (error = dlerror()) == NULL ) return true;         /* \o/ it worked! */
+  if ( (error = dlerror()) == NULL ) return true;          /* \o/ it worked! */
 
   fprintf(stderr, "could not find '%s', error %s\n", func, error);
   cnog_enc_2_error(xbuf, "no_such_function");
@@ -47,10 +47,11 @@ static bool get_fpointer(char *func, ei_x_buff *xbuf, void **funcp) {
   return false;
 }
 
-static bool make_reply(ei_x_buff *xbuf, char *buff, int *index) {
+static bool make_reply(ei_x_buff *xbuf, char *buff, int *index, cnog_dest *dest) {
   int k;
   int arity;
   char cmd[MAXATOMLEN+1];
+  char wrapped_cmd[MAXATOMLEN+MAXATOMLEN+2] = "";
   bool (*funcp)(int, ei_x_buff *, char *, int *);
 
   if ( ! ((arity = cnog_get_tuple(xbuf, buff, index)) > -1) ||
@@ -59,7 +60,10 @@ static bool make_reply(ei_x_buff *xbuf, char *buff, int *index) {
        ! ((arity = cnog_get_list(xbuf, buff, index)) > -1) )
     return false;
 
-  if ( get_fpointer(cmd, xbuf, (void *)&funcp) &&
+  strcat(wrapped_cmd,dest->prefix);
+  strcat(wrapped_cmd,"_");
+  strcat(wrapped_cmd,cmd);
+  if ( get_fpointer(wrapped_cmd, xbuf, (void *)&funcp) &&
        (*funcp)(arity, xbuf, buff, index) ) {
     assert( ei_decode_list_header(buff,index,&k) == 0 );
     assert( k == 0 );
@@ -87,7 +91,7 @@ static void send_replies(char *buff, int *index, cnog_dest *dest) {
       make_xbuf(&xbuf);
     }
     ei_x_encode_list_header(&xbuf, 1);
-    if ( ! make_reply(&xbuf, buff, index) )
+    if ( ! make_reply(&xbuf, buff, index, dest) )
       break;
   }
 
@@ -113,6 +117,7 @@ static bool cnog_receive(cnog_dest *dest) {
     switch (msg.msgtype) {
     case ERL_REG_SEND:
       dest->pid = msg.from;
+      strcpy(dest->prefix, msg.toname);
       reply(&xbuf, dest);
       break;
     case ERL_SEND:

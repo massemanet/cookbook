@@ -1,9 +1,13 @@
 
-1> register(foo,self()).
 
-$ ./bin/cnog foo valkyria secretcookie cnognode 16
+$ ./bin/cnog foo $HOSTNAME secretcookie cnog_math 16
 
-2> flush().
-Shell got {{<6916.3.0>,handshake},[]}
-3> CNOG = list_to_pid("<6916.3.0>").
-4> CNOG ! [{cnog_math_cos,[2.00]}].
+(foo@valkyria)1> {cnog_math,cnog_math@valkyria}![{cos,[1.0]},{cos,[2.0]}].
+[{cos,[1.0]},{cos,[2.0]}]
+
+(foo@valkyria)2> flush().
+Shell got {{<6956.3.0>,reply},
+           [{ok,0.5403023058681398},{ok,-0.4161468365471424}]}
+
+(foo@valkyria)3> node(list_to_pid("<6956.3.0>")).
+cnog_math@valkyria
