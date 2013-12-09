@@ -19,9 +19,10 @@
 # sudo update-rc.d someapp defaults 50
 #
 # now this should work;
-# sudo invoke-rc.d someapp start
-# sudo invoke-rc.d someapp stop
+# invoke-rc.d someapp start
+# invoke-rc.d someapp stop
 
+# $1 is a list of dirs. return the first dir that is writable.
 tryt() {
     while [ 0 -lt $# ]; do
         if 2>/dev/null touch $1/$$ && rm $1/$$; then
