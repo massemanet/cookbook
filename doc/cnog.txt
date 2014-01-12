@@ -1,3 +1,5 @@
+gcc -o wrap -g -L/usr/local/Cellar/erlang/R16B03/lib/erlang/lib/erl_interface-3.7.15/lib -I/usr/local/Cellar/erlang/R16B03/lib/erlang/lib/erl_interface-3.7.15/include -rdynamic -ldl -lei example.c wrap.c cnog.c cnog_marshal.c
+
 $ erl -sname blag -setcookie secretcookie
 
 $ ./bin/cnog blag $HOSTNAME secretcookie cnog_math 16
