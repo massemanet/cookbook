@@ -12,9 +12,9 @@ bool prime(int n) {
   int i;
   printf("prime - %i", n);
   for (i = 2; i < n/2; i++) {
-    if (n%i == 0) return true;
+    if (n%i == 0) return false;
   }
-  return false;
+  return true;
 }
 
 /* Compute the greatest common divisor of positive integers */

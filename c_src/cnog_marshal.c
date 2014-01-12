@@ -154,12 +154,10 @@ bool cnog_get_arg_longlong(ei_x_buff *xbuf, char *B, int *I, long long *a) {
 
   switch (type) {
   case '#':
-    (*I)++;
-    *a = *(B + *I);
-    if (*(B + *I + 1) == 0) {
-      *I += 2;
-    }else{
-      *(B + *I) = '#';
+    *a = *(B + *I + *(B + *I + 1) + 3);
+    (*(B + *I + 1))++;
+    if (*(B + *I + 1) == *(B + *I + 2)) {
+      *I += *(B + *I + 2) + 3;
     }
     return true;
   default:
@@ -228,8 +226,8 @@ int cnog_get_list(ei_x_buff *xbuf, char *B, int *I) {
     cnog_enc_1_error(xbuf, "bad_list");
     break;
   case ERL_STRING_EXT:
-    (*I)++;
     *(B + *I) = '#';
+    assert(*(B + *I + 1) == 0);
     return size;
     break;
   }
