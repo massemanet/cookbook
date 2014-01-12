@@ -115,10 +115,7 @@ bool cnog_get_arg_atom(ei_x_buff *xbuf, char *B, int *I, char *a){
 bool cnog_get_arg_string(ei_x_buff *xbuf, char *B, int *I, char **a){
   int type, size;
 
-  if ( ei_get_type(B, I, &type, &size) ) {
-    cnog_enc_1_error(xbuf, "bad_type");
-    return false;
-  }
+  ei_get_type(B, I, &type, &size);
 
   *a = (char *)malloc(size+1);
 
@@ -151,10 +148,25 @@ bool cnog_get_arg_long(ei_x_buff *xbuf, char *B, int *I, long *a) {
   return true;
 }
 bool cnog_get_arg_longlong(ei_x_buff *xbuf, char *B, int *I, long long *a) {
+  int type, size;
 
-  if ( ! ei_decode_longlong(B ,I, a) ) return true;
-  cnog_enc_1_error(xbuf, "bad_integer");
-  return false;
+  ei_get_type(B, I, &type, &size); /* can't fail */
+
+  switch (type) {
+  case '#':
+    (*I)++;
+    *a = *(B + *I);
+    if (*(B + *I + 1) == 0) {
+      *I += 2;
+    }else{
+      *(B + *I) = '#';
+    }
+    return true;
+  default:
+    if ( ! ei_decode_longlong(B ,I, a) ) return true;
+    cnog_enc_1_error(xbuf, "bad_integer");
+    return false;
+  }
 }
 
 bool cnog_get_arg_ushort(ei_x_buff *xbuf, char *B, int *I, unsigned short *a) {
@@ -205,8 +217,22 @@ bool cnog_check_arity(ei_x_buff *xbuf, int a1, int a2) {
 /***************************************************************************/
 int cnog_get_list(ei_x_buff *xbuf, char *B, int *I) {
   int ari;
-  if ( ! ei_decode_list_header(B, I, &ari) ) return ari;
-  cnog_enc_1_error(xbuf, "bad_list");
+  int type, size;
+
+  ei_get_type(B, I, &type, &size); /* can't fail */
+
+  switch (type) {
+  case ERL_LIST_EXT:
+  case ERL_NIL_EXT:
+    if ( ! ei_decode_list_header(B, I, &ari) ) return ari;
+    cnog_enc_1_error(xbuf, "bad_list");
+    break;
+  case ERL_STRING_EXT:
+    (*I)++;
+    *(B + *I) = '#';
+    return size;
+    break;
+  }
   return -1;
 }
 
@@ -216,3 +242,26 @@ int cnog_get_tuple(ei_x_buff *xbuf, char *B, int *I) {
   cnog_enc_1_error(xbuf, "bad_tuple");
   return -1;
 }
+/* 'a' ERL_SMALL_INTEGER_EXT */
+/* 'b' ERL_INTEGER_EXT       */
+/* 'c' ERL_FLOAT_EXT         */
+/* 'd' ERL_ATOM_EXT          */
+/* 'e' ERL_REFERENCE_EXT     */
+/* 'f' ERL_PORT_EXT          */
+/* 'g' ERL_PID_EXT           */
+/* 'h' ERL_SMALL_TUPLE_EXT   */
+/* 'i' ERL_LARGE_TUPLE_EXT   */
+/* 'j' ERL_NIL_EXT           */
+/* 'k' ERL_STRING_EXT        */
+/* 'l' ERL_LIST_EXT          */
+/* 'm' ERL_BINARY_EXT        */
+/* 'n' ERL_SMALL_BIG_EXT     */
+/* 'o' ERL_LARGE_BIG_EXT     */
+/* 'p' ERL_NEW_FUN_EXT       */
+/* 'r' ERL_NEW_REFERENCE_EXT */
+/* 's' ERL_SMALL_ATOM_EXT    */
+/* 'u' ERL_FUN_EXT           */
+/* 'v' ERL_ATOM_UTF8_EXT     */
+/* 'w' ERL_SMALL_ATOM_UTF8_EXT */
+/* 'C' ERL_CACHED_ATOM       */
+/* 'N' ERL_NEW_CACHE         */
