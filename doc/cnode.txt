@@ -1,0 +1,9 @@
+$ ./bin/cnode 12345
+
+$ erl -sname foo -setcookie secretcookie
+
+(foo)1> {y,c1@megrim}!{x,self(),{foo,1}}.
+{x,<0.39.0>,{foo,1}}
+(foo)2> flush().
+Shell got {cnode,1}
+ok
