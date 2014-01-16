@@ -10,13 +10,15 @@ main(_) ->
   {ok,Hostname} = inet:gethostname(),
   Cnode = list_to_atom("c1@"++Hostname),
   Port = open_port({spawn,make_cmd()},[stderr_to_stdout,exit_status]),
+  flush(),
   {y,Cnode} ! {x,self(),{foo,1}},
+  flush(),
   io:fwrite("port - ~s",[receive {_Port,{data,Y}} -> Y after 1000 -> "to" end]),
   flush(),
   port_close(Port).
 
 make_cmd() ->
-  filename:dirname(escript:script_name()) ++ "/cnode 12345".
+  filename:dirname(escript:script_name()) ++ "/cnode 12340".
 
 flush() ->
   io:fwrite("~p~n",[receive X -> X after 1000 -> "to" end]).

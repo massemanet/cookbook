@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 
@@ -36,26 +37,34 @@ int main(int argc, char **argv) {
 
   erl_init(NULL, 0);
 
-  if (erl_connect_init(1, "secretcookie", 0) == -1)
+  if (erl_connect_init(3, "secretcookie", 0) == -1) {
     erl_err_quit("erl_connect_init");
+  }
 
   /* Make a listen socket */
-  if ((listen = my_listen(port)) <= 0)
+  if ((listen = my_listen(port)) <= 0) {
     erl_err_quit("my_listen");
+  }
 
-  if (erl_publish(port) == -1)
+  if (erl_publish(port) == -1) {
+    close(listen);
     erl_err_quit("erl_publish");
+  }
+  fprintf(stderr, "published c3\n\r");
 
-  if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
+  if ((fd = erl_accept(listen, &conn)) == ERL_ERROR) {
+    close(listen);
     erl_err_quit("erl_accept");
+  }
   fprintf(stderr, "Connected to %s\n\r", conn.nodename);
 
   while (1) {
-
     got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
     if (got == ERL_TICK) {
       /* ignore */
     } else if (got == ERL_ERROR) {
+      close(fd);
+      close(listen);
       return 0;
     } else {
 
@@ -81,6 +90,8 @@ int main(int argc, char **argv) {
       }
     }
   }
+  close(fd);
+  close(listen);
   return 0;
 }
 
