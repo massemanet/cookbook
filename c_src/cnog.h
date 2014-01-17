@@ -3,7 +3,7 @@
 typedef struct {
   erlang_pid pid;
   int fd;
-  char prefix[MAXATOMLEN_UTF8];
+  char prefix[MAXATOMLEN];
 } cnog_dest;
 
 erlang_pid *cnog_self(void);
