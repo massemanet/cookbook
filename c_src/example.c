@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "example.h"
 
 /* A global variable */
@@ -10,7 +9,6 @@ float pie() {
 
 bool prime(int n) {
   int i;
-  printf("prime - %i", n);
   for (i = 2; i < n/2; i++) {
     if (n%i == 0) return false;
   }

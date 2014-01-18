@@ -146,46 +146,34 @@ static int cnog_loop(cnog_dest *dest) {
   }
 }
 
-#define REMNODE           argv[1]
-#define REMHOST           argv[2]
-#define COOKIE            argv[3]
-#define NODE_NAME         argv[4]
-#define ERL_DIST_VSN atoi(argv[5])
+#define REM_NODE_NAME     argv[1]
+#define COOKIE            argv[2]
+#define NODE_NAME         argv[3]
+#define ERL_DIST_VSN atoi(argv[4])
 
 static void cnog_start_cnode(char **argv, cnog_dest *dest) {
-  char rem_node_name[MAXATOMLEN] = "";  /* other node name */
   erlang_pid *self = cnog_self();
   int fd;
 
-  strcat(rem_node_name,REMNODE);
-  strcat(rem_node_name,"@");
-  strcat(rem_node_name,REMHOST);
-  printf("I am %s, you are %s (%d)\n", NODE_NAME, rem_node_name, ERL_DIST_VSN);
+  printf("I am %s, you are %s (%d)\n", NODE_NAME, REM_NODE_NAME, ERL_DIST_VSN);
 
   ei_set_compat_rel(ERL_DIST_VSN); /* erlnode version of dist. protocol */
 
   if ( ei_connect_init(&ec, NODE_NAME, COOKIE, 1) < 0 )
     ABEND("ei_connect_init");
 
-  if ( (fd = ei_connect(&ec, rem_node_name)) < 0 )
+  if ( (fd = ei_connect(&ec, REM_NODE_NAME)) < 0 )
     ABEND("ei_connect failed.\nwrong cookie? erl-dist version mismatch?");
 
   self->num = fd;               /* bug?? in ei_reg_send_tmo */
   dest->fd = fd;
-
-  /* ei_x_buff xbuf; */
-  /* ei_x_new_with_version(&xbuf); */
-  /* cnog_wrap_ans("handshake", &xbuf); */
-  /* ei_x_encode_empty_list(&xbuf); */
-  /* cnog_send(&xbuf); */
-  /* ei_x_free(&xbuf); */
 }
 
 int main(int argc, char **argv){
   cnog_dest dest;
 
-  if ( argc != 6 ){
-    printf("Usage: %s node host cookie node_name erl_dist_vsn\n", argv[0]);
+  if ( argc != 5 ){
+    printf("Usage: %s rem_node_name cookie node_name erl_dist_vsn\n", argv[0]);
     return 1;
   }
 

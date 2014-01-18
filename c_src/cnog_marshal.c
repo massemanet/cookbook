@@ -60,20 +60,44 @@ void cnog_put_boolean(ei_x_buff *xbuf, int b) {
   cnog_wrap_reply("ok", xbuf);
   assert( ! ei_x_encode_boolean(xbuf, b) );
 }
+void cnog_put_bool(ei_x_buff *xbuf, int b) {
+  cnog_put_boolean(xbuf, b);
+}
 
 void cnog_put_double(ei_x_buff *xbuf, double d) {
   cnog_wrap_reply("ok", xbuf);
   assert( ! ei_x_encode_double(xbuf, d) );
+}
+void cnog_put_float(ei_x_buff *xbuf, float f) {
+  cnog_put_double(xbuf, (double)f);
 }
 
 void cnog_put_longlong(ei_x_buff *xbuf, long long l) {
   cnog_wrap_reply("ok", xbuf);
   assert( ! ei_x_encode_longlong(xbuf, l) );
 }
+void cnog_put_long(ei_x_buff *xbuf, long i) {
+  cnog_put_longlong(xbuf, (long long)i);
+}
+void cnog_put_int(ei_x_buff *xbuf, int i) {
+  cnog_put_longlong(xbuf, (long long)i);
+}
+void cnog_put_short(ei_x_buff *xbuf, short i) {
+  cnog_put_longlong(xbuf, (long long)i);
+}
 
 void cnog_put_ulonglong(ei_x_buff *xbuf, unsigned long long l) {
   cnog_wrap_reply("ok", xbuf);
   assert( ! ei_x_encode_ulonglong(xbuf, l) );
+}
+void cnog_put_ulong(ei_x_buff *xbuf, unsigned long i) {
+  cnog_put_ulonglong(xbuf, (unsigned long long)i);
+}
+void cnog_put_uint(ei_x_buff *xbuf, unsigned int i) {
+  cnog_put_ulonglong(xbuf, (unsigned long long)i);
+}
+void cnog_put_ushort(ei_x_buff *xbuf, unsigned short i) {
+  cnog_put_ulonglong(xbuf, (unsigned long long)i);
 }
 
 void cnog_put_atom(ei_x_buff *xbuf, char *p) {
@@ -115,43 +139,18 @@ bool cnog_get_arg_atom(ei_x_buff *xbuf, char *B, int *I, char *a){
 bool cnog_get_arg_string(ei_x_buff *xbuf, char *B, int *I, char **a){
   int type, size;
 
-  ei_get_type(B, I, &type, &size);
-
+  ei_get_type(B, I, &type, &size); /* can't fail */
   *a = (char *)malloc(size+1);
-
   if ( ! ei_decode_string(B, I, *a) ) return true;
-
   free(*a);
   cnog_enc_1_error(xbuf, "bad_string");
   return false;
 }
 
-bool cnog_get_arg_short(ei_x_buff *xbuf, char *B, int *I, short *a) {
-  long long ll;
-
-  if ( ! cnog_get_arg_longlong(xbuf, B, I, &ll) ) return false;
-  *a = ll;
-  return true;
-}
-bool cnog_get_arg_int(ei_x_buff *xbuf, char *B, int *I, int *a) {
-  long long ll;
-
-  if ( ! cnog_get_arg_longlong(xbuf, B, I, &ll) ) return false;
-  *a = ll;
-  return true;
-}
-bool cnog_get_arg_long(ei_x_buff *xbuf, char *B, int *I, long *a) {
-  long long ll;
-
-  if ( ! cnog_get_arg_longlong(xbuf, B, I, &ll) ) return false;
-  *a = ll;
-  return true;
-}
 bool cnog_get_arg_longlong(ei_x_buff *xbuf, char *B, int *I, long long *a) {
   int type, size;
 
   ei_get_type(B, I, &type, &size); /* can't fail */
-
   switch (type) {
   case '#':
     *a = *(B + *I + *(B + *I + 1) + 3);
@@ -166,47 +165,71 @@ bool cnog_get_arg_longlong(ei_x_buff *xbuf, char *B, int *I, long long *a) {
     return false;
   }
 }
+bool cnog_get_arg_long(ei_x_buff *xbuf, char *B, int *I, long *a) {
+  long long ll;
 
-bool cnog_get_arg_ushort(ei_x_buff *xbuf, char *B, int *I, unsigned short *a) {
-  unsigned long long ull;
-  if ( ! cnog_get_arg_ulonglong(xbuf,B,I,&ull) ) return false;
-  *a = ull;
+  if ( ! cnog_get_arg_longlong(xbuf, B, I, &ll) ) return false;
+  *a = ll;
   return true;
 }
-bool cnog_get_arg_uint(ei_x_buff *xbuf, char *B, int *I, unsigned int *a) {
-  unsigned long long ull;
-  if ( ! cnog_get_arg_ulonglong(xbuf,B,I,&ull) ) return false;
-  *a = ull;
+bool cnog_get_arg_int(ei_x_buff *xbuf, char *B, int *I, int *a) {
+  long long ll;
+
+  if ( ! cnog_get_arg_longlong(xbuf, B, I, &ll) ) return false;
+  *a = ll;
   return true;
 }
-bool cnog_get_arg_ulong(ei_x_buff *xbuf, char *B, int *I, unsigned long *a) {
-  unsigned long long ull;
-  if ( ! cnog_get_arg_ulonglong(xbuf,B,I,&ull) ) return false;
-  *a = ull;
+bool cnog_get_arg_short(ei_x_buff *xbuf, char *B, int *I, short *a) {
+  long long ll;
+
+  if ( ! cnog_get_arg_longlong(xbuf, B, I, &ll) ) return false;
+  *a = ll;
   return true;
 }
+
 bool cnog_get_arg_ulonglong(ei_x_buff *xbuf, char *B, int *I,
                             unsigned long long *ull) {
   if ( ! ei_decode_ulonglong(B, I, ull) ) return true;
   cnog_enc_1_error(xbuf, "bad_unsigned_integer");
   return false;
 }
+bool cnog_get_arg_ushort(ei_x_buff *xbuf, char *B, int *I, unsigned short *a) {
+  unsigned long long ull;
 
-bool cnog_get_arg_float(ei_x_buff *xbuf, char *B, int *I, float *a) {
-  double dbl;
-  if ( ! cnog_get_arg_double(xbuf, B, I, &dbl) ) return false;
-  *a = dbl;
+  if ( ! cnog_get_arg_ulonglong(xbuf,B,I,&ull) ) return false;
+  *a = ull;
   return true;
 }
+bool cnog_get_arg_uint(ei_x_buff *xbuf, char *B, int *I, unsigned int *a) {
+  unsigned long long ull;
+
+  if ( ! cnog_get_arg_ulonglong(xbuf,B,I,&ull) ) return false;
+  *a = ull;
+  return true;
+}
+bool cnog_get_arg_ulong(ei_x_buff *xbuf, char *B, int *I, unsigned long *a) {
+  unsigned long long ull;
+
+  if ( ! cnog_get_arg_ulonglong(xbuf,B,I,&ull) ) return false;
+  *a = ull;
+  return true;
+}
+
 bool cnog_get_arg_double(ei_x_buff *xbuf, char *B, int *I, double *a) {
   if ( ! ei_decode_double(B, I, a) ) return true;
   cnog_enc_1_error(xbuf, "bad_double");
   return false;
 }
+bool cnog_get_arg_float(ei_x_buff *xbuf, char *B, int *I, float *a) {
+  double dbl;
+
+  if ( ! cnog_get_arg_double(xbuf, B, I, &dbl) ) return false;
+  *a = dbl;
+  return true;
+}
 
 bool cnog_check_arity(ei_x_buff *xbuf, int a1, int a2) {
   if ( a1 == a2 ) return true;
-
   cnog_enc_2_error(xbuf, "bad_arity");
   ei_x_encode_long(xbuf, (long) a2);
   return false;
@@ -218,7 +241,6 @@ int cnog_get_list(ei_x_buff *xbuf, char *B, int *I) {
   int type, size;
 
   ei_get_type(B, I, &type, &size); /* can't fail */
-
   switch (type) {
   case ERL_LIST_EXT:
   case ERL_NIL_EXT:
@@ -236,6 +258,7 @@ int cnog_get_list(ei_x_buff *xbuf, char *B, int *I) {
 
 int cnog_get_tuple(ei_x_buff *xbuf, char *B, int *I) {
   int ari;
+
   if ( ! ei_decode_tuple_header(B, I, &ari) ) return ari;
   cnog_enc_1_error(xbuf, "bad_tuple");
   return -1;
