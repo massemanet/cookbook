@@ -19,8 +19,8 @@
          handle_call/3,handle_cast/2,handle_info/2]).
 
 %% declare the state
--record(b,{uno=1,due=[1,2]}).
--record(state,{a={},b=#b{}}).
+-record(b,{uno = 1,due = [1,2]}).
+-record(state,{a = {},b = #b{}}).
 
 %% add all records here, to kludge around the record kludge.
 rec_info(state) -> record_info(fields,state);
@@ -69,7 +69,7 @@ handle_cast(_What,State) ->
 handle_info(_What,State) ->
   {noreply,State}.
 
-%% utilities
+%% utility to print state
 expand_recs(List) when is_list(List) ->
   [expand_recs(I) || I <- List];
 expand_recs(Tup) when is_tuple(Tup) ->
@@ -85,3 +85,5 @@ expand_recs(Tup) when is_tuple(Tup) ->
   end;
 expand_recs(Term) ->
   Term.
+
+%% end of boilerplate
