@@ -1,7 +1,0 @@
-{application,cookbook,
- [
-  {description, "Various snippets"},
-  {vsn, "0.10"},
-  {registered, []},
-  {applications, [kernel,stdlib,inets]}
- ]}.
