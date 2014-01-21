@@ -63,10 +63,12 @@ handle_call(unlink,_From,State) ->
 handle_call(What,_From,State) ->
   {reply,What,State}.
 
-handle_cast(_What,State) ->
+handle_cast(What,State) ->
+  erlang:display({cast,What}),
   {noreply,State}.
 
-handle_info(_What,State) ->
+handle_info(What,State) ->
+  erlang:display({info,What}),
   {noreply,State}.
 
 %% utility to print state
