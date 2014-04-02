@@ -1,6 +1,9 @@
 #!/bin/bash
 
-[ -f "$1" ] || (echo "no such file" && exit 1)
+if [ ! -f "$1" ]; then
+    echo "no such file"
+    exit 1
+fi
 echo -n "opened..."
 convert "$1" -resize 256x256 -transparent white $$-8.png
 echo -n " converted..."
