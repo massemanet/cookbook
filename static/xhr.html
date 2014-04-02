@@ -5,14 +5,15 @@
     <script>
       (function() {
         function load() {
-          function out(oEvent) {
-            console.log(this);
-            console.log(oEvent);
+          function out() {
+            var resp = JSON.parse(this.response);
+            document.getElementById('status').innerHTML = this.status;
+            document.getElementById('response').innerHTML = resp.prfSys.node;
           }
-          var url = "file:///Users/masse/git/cookbook/static/xhr.html";
+          var url = "file:///Users/masse/git/cookbook/static/xhr.json";
           var oReq = new XMLHttpRequest();
           oReq.open("GET", url);
-          oReq.onloadend = out(oReq);
+          oReq.onloadend = out;
           oReq.send(null);
         }
         window.onload = load;
@@ -21,5 +22,9 @@
   </head>
   <body>
     <h3> hello </h3>
+    response
+    <h3 id="response">response</h3>
+    status
+    <h3 id="status">status</h3>
   </body>
 </html>
