@@ -1,4 +1,4 @@
-REBAR = ../rebar/rebar
+REBAR = ./rebar
 
 .PHONY: all clean
 
