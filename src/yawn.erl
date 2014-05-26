@@ -13,8 +13,9 @@
 %% socket to it. The socket is never closed; instead the worker just exits.
 %% This is optimized for relatively long-lived workers. But simple.
 %%
-%% There's only one interesting function; yawn:start/1
-%% The argument is a proplist. The available tags are;
+%% There's only one interesting function; yawn:start/2
+%% The first argument is an atom() - an identifier of this instance of yawn.
+%% The second argument is a proplist. The available tags are;
 %%   port - the port number [6666]
 %%   packeting - as per erlang:decode_packet/3 [http_bin]
 %%   handler - a fun/3 [yawn:handler/3]
@@ -35,16 +36,16 @@
 %%   {keep,Reply,State} - send Reply, don't close the socket.
 %%
 %% Examples;
-%%    yawn:start().
+%%    yawn:start(x).
 %%  will start a server listening to port 6666, expecting http data, and
 %%  replying with a representation of the http request.
 %%
-%%    yawn:start([{packeting,raw}]).
+%%    yawn:start(x,[{packeting,raw}]).
 %%  will start an echo server on port 6666.
 %%  If you connect with telnet ("telnet localhost 6666"), it will echo
 %%  whatever you type in until you type "close" (then it will close the socket).
 %%
-%%    yawn:start([{packeting,raw},{handler,H}]).
+%%    yawn:start(y,[{packeting,raw},{handler,H}]).
 %%  where
 %%   H=fun(_,<<"q\r\n">>,_)->close;(_,X,[])->{keep,"",X};(_,X,S)->{keep,S,X}end.
 %%  will start a server that echoes its previous input, and stops when its
