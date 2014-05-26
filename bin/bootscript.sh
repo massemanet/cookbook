@@ -124,5 +124,7 @@ case "$1" in
         out "detaching $USER - $$."
         ;;
     *)
+        echo "unrecognized command: $1"
+        out "unrecognized command: $1"
         exit 1
 esac
