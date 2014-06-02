@@ -55,7 +55,7 @@
 -module('yawn').
 -author('mats cronqvist').
 
--export([start/1,start/2,stop/1]). % API
+-export([start/1,start/2,start_link/2,stop/1]). % API
 
 -export([listen_loop/1,worker_loop/3]). % internal exports
 
@@ -67,21 +67,28 @@ stop(Name) ->
     Pid       -> exit(Pid,kill)
   end.
 
+start_link(Name,Opts) ->
+  Pid = start(Name,Opts),
+  true = link(Pid),
+  {ok,Pid}.
+
 start(Name) ->
   start(Name,[]).
 
 start(Name,Opts) ->
-  case whereis(Name) of
-    undefined -> register(Name,spawn(fun init/0));
-    _         -> ok
-  end,
-  Name ! {go,add_defaults(Opts)},
-  whereis(Name).
+  Os = add_defaults(Opts),
+  Self = self(),
+  {Pid,Ref} = spawn_monitor(fun() -> init(Name,Os,Self) end),
+  receive
+    {'DOWN',Ref,_,Pid,badarg} -> {yawn,already_started};
+    {'DOWN',Ref,_,Pid,R}      -> {yawn,R};
+    {ok,Pid}                  -> demonitor(Ref,[flush,info])
+  end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% options
 default_opts() ->
-  [{port,6666},
+  [{port,9012},
    {packeting,http_bin},
    {handler,fun handler/3}].
 
@@ -98,13 +105,14 @@ log(X) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% the main process
-init() ->
-  receive
-    {go,Opts} ->
-      try init(Opts)
-      catch error:R -> log({error,R})
-      end
-  end.
+init(Name,Opts,Daddy) ->
+  try
+    register(Name,self())
+  catch
+    _:_ -> exit(already_started)
+  end,
+  Daddy ! {ok,self()},
+  init(Opts).
 
 init(Opts) ->
   process_flag(trap_exit,true),
@@ -191,10 +199,10 @@ send(Socket,Reply) ->
 
 handler(tcp,<<"close\r",_/binary>>,_)    -> close;
 handler(tcp,Data,S)                      -> {keep,Data,S};
-handler(http,?HttpEoh(),S)               -> {keep,S};
-handler(http,?HttpError(Val),_)          -> {close,flat(Val)};
-handler(http,?HttpHeader(_,_),S)         -> {keep,S};
-handler(http,?HttpRequest(Meth,Uri,_),_) -> {close,flat({Meth,Uri})}.
+handler(http,?HttpRequest(Meth,Uri,_),_) -> {keep,{{Meth,Uri},[]}};
+handler(http,?HttpHeader(K,V),{Rq,Hs})   -> {keep,{Rq,[{K,V}|Hs]}};
+handler(http,?HttpEoh(),S)               -> {close,flat(S)};
+handler(http,?HttpError(Val),_)          -> {close,flat(Val)}.
 
 flat(Term) ->
   lists:flatten(io_lib:fwrite("~p",[Term])).
