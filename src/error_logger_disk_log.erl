@@ -88,5 +88,49 @@ assert_logdir(Attributes) ->
 
 out(What,State) ->
   Name = proplists:get_value(name,State),
-  Out = list_to_binary(io_lib:format("~n====~n~p~n",[What])),
+  Out = list_to_binary(what(What)),
   disk_log:balog(Name,Out).
+
+what({error,          _GL,{Pid,Format,Data}}) -> % error_msg/1,2
+  msg(error,Pid,Format,Data);
+what({warning_msg,    _GL,{Pid,Format,Data}}) -> % warning_msg/1,2
+  msg(warning,Pid,Format,Data);
+what({info_msg,       _GL,{Pid,Format,Data}}) -> % info_msg/1,2
+  msg(info,Pid,Format,Data);
+what({error_report,   _GL,{Pid,Type,Report}}) -> % error_report/1,2
+  report(error,Pid,Type,Report);
+what({warning_report, _GL,{Pid,Type,Report}}) -> % warning_report/1,2
+  report(warning,Pid,Type,Report);
+what({info_report,    _GL,{Pid,Type,Report}}) -> % info_report/1,2
+  report(info,Pid,Type,Report);
+what(What) ->                                    % system events
+  head("SYSTEM EVENT")++body("~p",What).
+
+report(Kind,Pid,Type,Report) ->
+  Head = head(io_lib:format("~w/~w ~w ~w",[Kind,Type,node(Pid),Pid])),
+  Body = report(Report),
+  Head++Body.
+
+msg(Kind,Pid,Format,Data) ->
+  Head = head(io_lib:format("~w ~w ~w",[Kind,node(Pid),Pid])),
+  Body = body(Format,Data),
+  Head++Body.
+
+report(List) when is_list(List) -> 
+  try io_lib:format("  \"~s\"~n",[List])
+  catch _:_ -> [report(E) || E <- List]
+  end;
+report({K,V}) -> body("  ~p: ~p",[K,V]);
+report(T) -> body("  ~p",[T]).
+
+body(Format,Data) ->
+  try io_lib:format(Format++"~n",Data)
+  catch _:_ -> io_lib:format("format error~n~p~n~p~n",[Format,Data])
+  end.
+
+head(Tag) ->
+  io_lib:format("~n== ~s ~s ==~n",[ts(),Tag]).
+
+ts() ->
+  {{Y,Mo,D},{H,Mi,S}} = calendar:now_to_local_time(os:timestamp()),
+  io_lib:fwrite("~4w-~.2.0w-~.2.0w ~.2.0w:~.2.0w:~.2.0w",[Y,Mo,D,H,Mi,S]).
