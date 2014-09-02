@@ -24,6 +24,8 @@ state(Opts) ->
    {filesize  ,proplists:get_value(filesize,Opts,1024*1024)},
    {filecount ,proplists:get_value(filecount,Opts,16)}].
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% gen_event callbacks
 handle_event(What,State) ->
   out(What,State),
   {ok,State}.
@@ -91,6 +93,8 @@ out(What,State) ->
   Out = list_to_binary(what(What)),
   disk_log:balog(Name,Out).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% formatting
 what({error,          _GL,{Pid,Format,Data}}) -> % error_msg/1,2
   msg(error,Pid,Format,Data);
 what({warning_msg,    _GL,{Pid,Format,Data}}) -> % warning_msg/1,2
