@@ -8,11 +8,11 @@
 -export([proplist_to_paths/1,paths_to_proplist/1]).
 
 proplist_to_paths(PL) ->
-  pl2ps(PL,[]).
+  pl2ps(PL,[],[]).
 
-pl2ps([],_)             -> [];
-pl2ps([{K,V}|T],Prefix) -> pl2ps(V,Prefix++[K])++pl2ps(T,Prefix);
-pl2ps(V,Prefix)         -> [{Prefix,V}].
+pl2ps([],_,A)             -> A;
+pl2ps([{K,V}|T],Prefix,A) -> pl2ps(T,Prefix,pl2ps(V,Prefix++[K],A));
+pl2ps(V,Prefix,A)         -> [{Prefix,V}|A].
 
 paths_to_proplist(Paths) ->
   element(3,ps2pl({Paths,[],[]})).
