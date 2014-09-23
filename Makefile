@@ -1,9 +1,17 @@
 REBAR = ./rebar
 
-.PHONY: all clean
+.PHONY: all compile clean test eeunit
 
-all:
+
+all: compile
+
+compile:
 	@$(REBAR) compile
+
+test: eunit
+
+eunit: compile
+	@$(REBAR) eunit
 
 clean:
 	@find . -name "*~" -exec rm {} \;

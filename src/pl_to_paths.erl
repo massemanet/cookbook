@@ -2,30 +2,56 @@
 %%% Created : 17 Sep 2014 by  <masse@klarna.com>
 
 %% @doc
+%% converts a graph between tree form;
+%% [{a,1},
+%%  {b,[{ba,21},
+%%      {bb,[{bba,221},
+%%           {bbb,222}]}]},
+%%  {c,3}]
+%%
+%% and path form;
+%%
+%% [{[c],3},
+%%  {[b,bb,bbb],222},
+%%  {[b,bb,bba],221},
+%%  {[b,ba],21},
+%%  {[a],1}]
 %% @end
 
 -module('pl_to_paths').
--export([proplist_to_paths/1,paths_to_proplist/1]).
+-export([tree_to_path/1,path_to_tree/1]).
 
-proplist_to_paths(PL) ->
-  pl2ps(PL,[],[]).
+tree_to_path(Tree) ->
+  t2p(Tree,[],[]).
 
-pl2ps([],_,A)             -> A;
-pl2ps([{K,V}|T],Prefix,A) -> pl2ps(T,Prefix,pl2ps(V,Prefix++[K],A));
-pl2ps(V,Prefix,A)         -> [{Prefix,V}|A].
+t2p([],_,A)             -> A;
+t2p([{K,V}|T],Prefix,A) -> t2p(T,Prefix,t2p(V,Prefix++[K],A));
+t2p(V,Prefix,A)         -> [{Prefix,V}|A].
 
-paths_to_proplist(Paths) ->
-  element(3,ps2pl(Paths,[],[])).
+path_to_tree(Paths) ->
+  {[],Acc} = p2t(lists:sort(Paths),[],[]),
+  Acc.
 
-ps2pl([],Prefix,Acc) -> {[],Prefix,Acc};
-ps2pl([{Path,V}|Paths],Prefix,Acc) ->
-  case mk_prefix(Prefix,Prefix,Path) of
-    {P}  -> {[{Path,V}|Paths],P,Acc};
-    [K]  -> ps2pl(Paths,Prefix,[{K,V}|Acc]);
-    [T|_]-> {NPaths,NPrefix,NAcc} = ps2pl([{Path,V}|Paths],Prefix++[T],[]),
-            ps2pl(NPaths,NPrefix,[{T,NAcc}|Acc])
+p2t([],_,Acc) -> {[],Acc};
+p2t([{Path,V}|_]=Paths,Prefix,Acc) ->
+  case strip_prefix(Prefix,Path) of
+    nil  -> {Paths,Acc};
+    [K]  -> p2t(tl(Paths),Prefix,[{K,V}|Acc]);
+    [T|_]-> {NPaths,NAcc} = p2t(Paths,Prefix++[T],[]),
+            p2t(NPaths,Prefix,[{T,NAcc}|Acc])
   end.
 
-mk_prefix(P,[X|Pre],[X|Tail]) -> mk_prefix(P,Pre,Tail);
-mk_prefix(_,[],Tail)          -> Tail;
-mk_prefix(P,_,_)              -> {lists:reverse(tl(lists:reverse(P)))}.
+strip_prefix([X|Pre],[X|Tail]) -> strip_prefix(Pre,Tail);
+strip_prefix([],Tail)          -> Tail;
+strip_prefix(_,_)              -> nil.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+t0_test() ->
+  PL = [{a,1},{b,[{ba,21},{bb,[{bba,221},{bbb,222}]}]},{c,3}],
+  ?assertEqual(
+     lists:sort(tree_to_path(path_to_tree(tree_to_path(PL)))),
+     lists:sort(tree_to_path(PL))).
+
+-endif.
