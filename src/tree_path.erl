@@ -18,7 +18,7 @@
 %%  {[a],1}]
 %% @end
 
--module('pl_to_paths').
+-module('tree_path').
 -export([tree_to_path/1,path_to_tree/1]).
 
 tree_to_path(Tree) ->
@@ -49,9 +49,9 @@ strip_prefix(_,_)              -> nil.
 -include_lib("eunit/include/eunit.hrl").
 
 t0_test() ->
-  PL = [{a,1},{b,[{ba,21},{bb,[{bba,221},{bbb,222}]}]},{c,3}],
+  Tree = [{a,1},{b,[{ba,21},{bb,[{bba,221},{bbb,222}]}]},{c,3}],
   ?assertEqual(
-     lists:sort(tree_to_path(path_to_tree(tree_to_path(PL)))),
-     lists:sort(tree_to_path(PL))).
+     lists:sort(tree_to_path(path_to_tree(tree_to_path(Tree)))),
+     lists:sort(tree_to_path(Tree))).
 
 -endif.
