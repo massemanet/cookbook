@@ -15,17 +15,17 @@ pl2ps([{K,V}|T],Prefix,A) -> pl2ps(T,Prefix,pl2ps(V,Prefix++[K],A));
 pl2ps(V,Prefix,A)         -> [{Prefix,V}|A].
 
 paths_to_proplist(Paths) ->
-  element(3,ps2pl({Paths,[],[]})).
+  element(3,ps2pl(Paths,[],[])).
 
-ps2pl({[],Prefix,Acc}) -> {[],Prefix,Acc};
-ps2pl({[{Path,V}|Paths],Prefix,Acc}) ->
-  case strip(Prefix,Path) of
-    nil  -> {[{Path,V}|Paths],tl(Prefix),Acc};
-    [K]  -> ps2pl({Paths,Prefix,[{K,V}|Acc]});
-    [T|_]-> {NPaths,NPrefix,NAcc} = ps2pl({[{Path,V}|Paths],Prefix++[T],Acc}),
-            ps2pl({NPaths,NPrefix,[{T,NAcc}]})
+ps2pl([],Prefix,Acc) -> {[],Prefix,Acc};
+ps2pl([{Path,V}|Paths],Prefix,Acc) ->
+  case mk_prefix(Prefix,Prefix,Path) of
+    {P}  -> {[{Path,V}|Paths],P,Acc};
+    [K]  -> ps2pl(Paths,Prefix,[{K,V}|Acc]);
+    [T|_]-> {NPaths,NPrefix,NAcc} = ps2pl([{Path,V}|Paths],Prefix++[T],[]),
+            ps2pl(NPaths,NPrefix,[{T,NAcc}|Acc])
   end.
 
-strip([X|Pre],[X|Whole]) -> strip(Pre,Whole);
-strip([],Whole)          -> Whole;
-strip(_,_)               -> nil.
+mk_prefix(P,[X|Pre],[X|Tail]) -> mk_prefix(P,Pre,Tail);
+mk_prefix(_,[],Tail)          -> Tail;
+mk_prefix(P,_,_)              -> {lists:reverse(tl(lists:reverse(P)))}.
