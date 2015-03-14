@@ -1,6 +1,6 @@
 REBAR = ./rebar
 
-.PHONY: all compile clean test eeunit
+.PHONY: all compile clean test eunit
 
 
 all: compile
