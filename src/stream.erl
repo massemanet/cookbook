@@ -19,6 +19,15 @@ next({stream,State,Next}) ->
 
 fold(Fun,Acc,Stream) ->
   case Stream:next() of
-    {El,Nstream} -> fold(Fun,Fun(El,Acc),Nstream);
+    {El,Nstream} ->
+      case nacc(Fun,El,Acc) of
+        {ok,Nacc} -> fold(Fun,Nacc,Nstream);
+        finished -> Acc
+      end;
     finished -> Acc
+  end.
+
+nacc(Fun,El,Acc) ->
+  try {ok,Fun(El,Acc)}
+  catch throw:finished -> finished
   end.
