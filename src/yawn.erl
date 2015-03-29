@@ -16,12 +16,13 @@
 %% There's only one interesting function; yawn:start/2
 %% The first argument is an atom() - an identifier of this instance of yawn.
 %% The second argument is a proplist. The available tags are;
-%%   port - the port number [6666]
+%%   port - the port number [9012]
 %%   packeting - as per erlang:decode_packet/3 [http_bin]
-%%   handler - a fun/3 [yawn:handler/3]
+%%   handler - a fun/4 [yawn:handler/4]
 %%
 %% The handler fun is called when there is a data on the socket. The args are;
-%%   Packeting - 'tcp' | 'http'
+%%   Packeting - 'tcp' | 'http_bin'
+%%   Type - the initial packeting type.
 %%   Data - term(); whatever erlang:decode_packet/3 returned.
 %%   State - term(); the previous handler state. Initialized to [].
 %% The handler is also called if the worker process receives data that does
@@ -37,12 +38,12 @@
 %%
 %% Examples;
 %%    yawn:start(x).
-%%  will start a server listening to port 6666, expecting http data, and
+%%  will start a server listening to port 9012, expecting http data, and
 %%  replying with a representation of the http request.
 %%
 %%    yawn:start(x,[{packeting,raw}]).
-%%  will start an echo server on port 6666.
-%%  If you connect with telnet ("telnet localhost 6666"), it will echo
+%%  will start an echo server on port 9012.
+%%  If you connect with telnet ("telnet localhost 9012"), it will echo
 %%  whatever you type in until you type "close" (then it will close the socket).
 %%
 %%    yawn:start(y,[{packeting,raw},{handler,H}]).
@@ -57,7 +58,7 @@
 
 -export([start/1,start/2,start_link/2,stop/1]). % API
 
--export([listen_loop/1,worker_loop/3]). % internal exports
+-export([listen_loop/1,worker_loop/5]). % internal exports
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% the API
@@ -90,7 +91,7 @@ start(Name,Opts) ->
 default_opts() ->
   [{port,9012},
    {packeting,http_bin},
-   {handler,fun handler/3}].
+   {handler,fun handler/4}].
 
 add_defaults(Opts) ->
   [{K,proplists:get_value(K,Opts,V)} || {K,V} <- default_opts()].
@@ -128,7 +129,7 @@ listen_loop(Opts) ->
       init(Opts);
     {ok,Socket} ->
       Worker = spawn_link(fun worker/0),
-      Worker ! {init,Socket,get_opt(handler,Opts)},
+      Worker ! {init,Socket,get_opt(handler,Opts),get_opt(packeting,Opts)},
       socket_handover(Socket,Worker),
       flush_exits(),
       ?MODULE:listen_loop(Opts)
@@ -158,30 +159,31 @@ socket_opts(Opts) ->
 %% the worker
 worker() ->
   receive
-    {init,Socket,Handler} -> worker_loop(Socket,Handler,[])
+    {init,Socket,Handler,Pack} -> worker_loop(Socket,Pack,Handler,[],Pack)
   end.
 
-worker_loop(Socket,H,HState) ->
-  inet:setopts(Socket,[{active,once}]),
-  case recv(Socket,H,HState) of
-    {loop,HS} -> ?MODULE:worker_loop(Socket,H,HS);
-    _ -> ok
+worker_loop(Socket,Type,H,HState,Pack) ->
+  inet:setopts(Socket,[{active,once},{packet,Pack}]),
+  case recv(Socket,Type,H,HState) of
+    {loop,HS,P} -> ?MODULE:worker_loop(Socket,Type,H,HS,P);
+    close       -> ok
   end.
 
-recv(Socket,H,HState) ->
+recv(Socket,Type,H,HState) ->
   receive
-    {tcp_closed,Socket}     -> ok;
-    {tcp_error, Socket, R}  -> log({socket_closed,Socket,R});
-    {Packeting,Socket,Data} -> handle(Socket,Packeting,Data,H,HState);
-    Data                    -> handle(Socket,msg,Data,H,HState)
+    {tcp_closed,Socket}  -> ok;
+    {tcp_error,Socket,R} -> log({socket_closed,Socket,R});
+    {Pack,Socket,Data}   -> handle(Socket,Type,Pack,Data,H,HState);
+    Data                 -> handle(Socket,Type,msg,Data,H,HState)
   end.
 
-handle(Socket,Packeting,Data,H,HState) ->
-  case H(Packeting,Data,HState) of
-    close           -> ok;
-    {keep,HS}       -> {loop,HS};
-    {close,Reply}   -> send(Socket,Reply);
-    {keep,Reply,HS} -> send(Socket,Reply),{loop,HS}
+handle(Socket,Type,Pack,Data,H,HState) ->
+  case H(Pack,Type,Data,HState) of
+    close           -> close;
+    {keep,HS}       -> {loop,HS,Type};
+    {keep_p,HS,P}   -> {loop,HS,P};
+    {close,Reply}   -> send(Socket,Reply),close;
+    {keep,Reply,HS} -> send(Socket,Reply),{loop,HS,Type}
   end.
 
 send(Socket,Reply) ->
@@ -192,17 +194,26 @@ send(Socket,Reply) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% the default handler
--define(HttpEoh(),http_eoh).
--define(HttpRequest(Method,Uri,Vsn),{http_request,Method,Uri,Vsn}).
--define(HttpHeader(Field,Value),{http_header,_,Field,_,Value}).
--define(HttpError(Value),{http_error,Value}).
+-define(HttpEoh(),              http_eoh).
+-define(HttpReq(Method,Uri,Vsn),{http_request,Method,Uri,Vsn}).
+-define(HttpHdr(Field,Value),   {http_header,_,Field,_,Value}).
+-define(HttpErr(Value),         {http_error,Value}).
 
-handler(tcp,<<"close\r",_/binary>>,_)    -> close;
-handler(tcp,Data,S)                      -> {keep,Data,S};
-handler(http,?HttpRequest(Meth,Uri,_),_) -> {keep,{{Meth,Uri},[]}};
-handler(http,?HttpHeader(K,V),{Rq,Hs})   -> {keep,{Rq,[{K,V}|Hs]}};
-handler(http,?HttpEoh(),S)               -> {close,flat(S)};
-handler(http,?HttpError(Val),_)          -> {close,flat(Val)}.
+handler(tcp,raw,<<"close\r",_/binary>>,_)     -> close;
+handler(tcp,raw,Data,S)                       -> {keep,Data,S};
+handler(tcp,http_bin,Data,{Rq,Hs})            -> {keep_p,{Rq,Hs,Data},http_bin};
+handler(http,http_bin,?HttpReq(Meth,Uri,_),_) -> {keep,{{Meth,Uri},[]}};
+handler(http,http_bin,?HttpHdr(K,V),{Rq,Hs})  -> {keep,{Rq,[{K,V}|Hs]}};
+handler(http,http_bin,?HttpErr(Val),_)        -> {close,flat(Val)};
+handler(http,http_bin,?HttpEoh(),S)           ->
+  case has_body(S) of
+    false-> {close,flat(S)};
+    true -> {keep_p,S,raw}
+  end.
+
+%% need to check the headers (in S) to see if there's a body
+has_body(_) ->
+  false.
 
 flat(Term) ->
   lists:flatten(io_lib:fwrite("~p",[Term])).
