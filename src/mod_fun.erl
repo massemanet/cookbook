@@ -9,8 +9,8 @@
 -export([do/1, load/2, store/2]).
 
 -include_lib("inets/include/httpd.hrl").
--include_lib("inets/src/http_server/httpd_internal.hrl").
--include_lib("inets/src/inets_app/inets_internal.hrl").
+
+-define(NICE(X),erlang:display(X)).
 
 -define(VMODULE,"FUN").    % what the hell does this do? snmp??
 
