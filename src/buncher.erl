@@ -78,5 +78,5 @@ source() ->
 
 loop() ->
   timer:sleep(300),
-  buncher ! {item,element(3,now())},
+  buncher ! {item,element(3,erlang:timestamp())},
   loop().
