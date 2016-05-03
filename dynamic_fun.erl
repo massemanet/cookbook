@@ -3,8 +3,8 @@
 
 %% @doc
 %% make a dynamic fun from a string.
-%% <arglist> -> <expression>[,<expression>]
-%% E.g. Y,X->2*X*Y
+%% (<arglist>) -> <expression>[,<expression>]
+%% E.g. (Y,X)->2*X*Y
 %% @end
 
 -module('dynamic_fun').
@@ -12,24 +12,33 @@
 -export([make/1]).
 
 make(Str) ->
-  {ok,Toks,_} = erl_scan:string(Str),
-  FunToks = decorate(Toks),
+  {ok,Toks,L} = erl_scan:string(Str),
+  FunToks = decorate(Toks,L),
   {ok,[Form]} = erl_parse:parse_exprs(FunToks),
   erl_eval:expr(Form, [], none, none, value).
 
-decorate(Toks) -> decorate(Toks,[{'(',1},{'fun',1}]).
+decorate(Toks,L) -> decorat(Toks,[{'fun',L}]).
 
-decorate([{'->',L}|Toks],Acc) -> decorate(Toks,[{'->',L},{')',L}|Acc]);
-decorate([{T,L}],Acc) -> lists:reverse([{dot,L},{T,L}|Acc]);
-decorate([{T,L,D}],Acc) -> lists:reverse([{dot,L},{'end',L},{T,L,D}|Acc]);
-decorate([H|T],Acc) -> decorate(T,[H|Acc]).
+decorat([{'->',L}|Toks],Acc) -> decorat(Toks,[{'->',L}|Acc]);
+decorat([{T,L}],Acc)         -> lists:reverse([{dot,L},{'end',L},{T,L}|Acc]);
+decorat([{T,L,D}],Acc)       -> lists:reverse([{dot,L},{'end',L},{T,L,D}|Acc]);
+decorat([H|T],Acc)           -> decorat(T,[H|Acc]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
 t0_test() ->
-  Fun = make("Y,X->2*X*Y"),
+  Fun = make("(Y,X)->2*X*Y"),
   '-expr/5-fun-5-' = proplists:get_value(name,erlang:fun_info(Fun)),
   24 = Fun(3,4).
+
+t1_test() ->
+  Fun = make("(Y,0)->2*Y*Y; (Y,X)->3*X*Y"),
+  18 = Fun(3,0),
+  36 = Fun(3,4).
+
+t2_test() ->
+  Fun = make("(Y,X)->ok"),
+  ok = Fun(3,4).
 
 -endif.
