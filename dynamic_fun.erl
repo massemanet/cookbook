@@ -20,7 +20,6 @@ make(Str) ->
 decorate(Toks,L) ->
   lists:reverse(decorat(Toks,[{'fun',L}])).
 
-decorat([{'->',L}|Toks],Acc) -> decorat(Toks,[{'->',L}|Acc]);
 decorat([{T,L}],Acc)         -> [{dot,L},{'end',L},{T,L}|Acc];
 decorat([{T,L,D}],Acc)       -> [{dot,L},{'end',L},{T,L,D}|Acc];
 decorat([H|T],Acc)           -> decorat(T,[H|Acc]).
