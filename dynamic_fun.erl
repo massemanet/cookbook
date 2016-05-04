@@ -17,11 +17,12 @@ make(Str) ->
   {ok,[Form]} = erl_parse:parse_exprs(FunToks),
   erl_eval:expr(Form, [], none, none, value).
 
-decorate(Toks,L) -> decorat(Toks,[{'fun',L}]).
+decorate(Toks,L) ->
+  lists:reverse(decorat(Toks,[{'fun',L}])).
 
 decorat([{'->',L}|Toks],Acc) -> decorat(Toks,[{'->',L}|Acc]);
-decorat([{T,L}],Acc)         -> lists:reverse([{dot,L},{'end',L},{T,L}|Acc]);
-decorat([{T,L,D}],Acc)       -> lists:reverse([{dot,L},{'end',L},{T,L,D}|Acc]);
+decorat([{T,L}],Acc)         -> [{dot,L},{'end',L},{T,L}|Acc];
+decorat([{T,L,D}],Acc)       -> [{dot,L},{'end',L},{T,L,D}|Acc];
 decorat([H|T],Acc)           -> decorat(T,[H|Acc]).
 
 -ifdef(TEST).
