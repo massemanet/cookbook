@@ -1,7 +1,8 @@
 -module(cas).
 
--export([init/2, read/2, write/3]).
+-export([init/2, read/2, write/3, match/3]).
 
+%%-----------------------------------------------------------------------------
 init(Tab, Dir) ->
     ets:new(Tab, [named_table, ordered_set]),
     ets:insert({{meta, data_dir}, Dir}),
@@ -27,7 +28,15 @@ write(Tab, Key, Val) ->
         throw:Abort -> {aborted, Abort}
     end.
 
-
+match(Tab, K, V) ->
+    case K of
+        '_' ->
+            ets:foldl(mk_matchf(V), [], Tab);
+        _ ->
+            Matches = ets:select(Tab, [{{{data, K}, '_', '_'}, [], ['$_']}]),
+            lists:foldl(mk_matchf(V), [], Matches)
+    end.
+%%----------------------------------------------------------------------------
 lock(Tab, Key) ->
     case ets:lookup(Tab, {data, Key}) of
         [] -> lock_new(Tab, Key);
@@ -60,6 +69,27 @@ cas(Tab, Old, New) ->
         0 -> false;
         R -> error({error_many_rows, {Tab, element(1, Old), R}})
     end.
+
+mk_matchf(V) ->
+    fun({_, _, []}, Acc) -> Acc;
+       ({{data, Key}, _, [Val]}, Acc) ->
+            case match(V, Val) of
+                true -> [{Key, Val}|Acc];
+                false -> Acc
+            end
+    end.
+
+match(V, V) ->
+    ok;
+match(A, B) when is_map(A), is_map(B) ->
+    maps:filter(mk_mapf(B), A);
+match(A, B) when is_list(A), is_list(B) ->
+    lists:zipwith(fun(Ea, Eb) -> match(Ea, Eb) end, A, B);
+match(A, B) when is_tuple(A), is_tuple(B) ->
+    match(tuple_to_list(A), tuple_to_list(B)).
+
+mk_mapf(M) ->
+    fun(K, V) -> match(V, maps:get(K, M)) end.
 
 persist(Tab, Key, Val) ->
     file:write_file(data_file(Tab, Key), term_to_binary({Key, Val})).
