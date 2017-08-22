@@ -5,7 +5,7 @@
 %%-----------------------------------------------------------------------------
 init(Tab, Dir) ->
     ets:new(Tab, [named_table, ordered_set]),
-    ets:insert({{meta, data_dir}, Dir}),
+    ets:insert(Tab, {{meta, data_dir}, Dir}),
     ok = filelib:ensure_dir(data_file(Tab, dummy)).
 
 read(Tab, Key) ->

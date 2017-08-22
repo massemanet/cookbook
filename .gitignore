@@ -1,6 +1,9 @@
+\#*
+.\#*
 *~
-.eunit
+/_build/
 /bin/*[^sh]
+/rebar.lock
 /ebin/
 *.o
 *.beam
