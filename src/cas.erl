@@ -83,9 +83,9 @@ mk_matchf(V) ->
     end.
 
 match('_', _) ->
-    ok;
+    true;
 match(V, V) ->
-    ok;
+    true;
 match(A, B) when is_map(A), is_map(B) ->
     maps:filter(mk_mapf(B), A);
 match(A, B) when is_list(A), is_list(B) ->
