@@ -71,14 +71,19 @@ cas(Tab, Old, New) ->
     end.
 
 mk_matchf(V) ->
-    fun({_, _, []}, Acc) -> Acc;
-       ({{data, Key}, _, [Val]}, Acc) ->
-            case match(V, Val) of
-                true -> [{Key, Val}|Acc];
-                false -> Acc
-            end
+    fun({{data, Key}, _, [Val]}, Acc) ->
+            try
+                match(V, Val),
+                [{Key, Val}|Acc]
+            catch
+                _:_ -> Acc
+            end;
+       (_, Acc) ->
+            Acc
     end.
 
+match('_', _) ->
+    ok;
 match(V, V) ->
     ok;
 match(A, B) when is_map(A), is_map(B) ->
@@ -96,4 +101,4 @@ persist(Tab, Key, Val) ->
 
 data_file(Tab, Key) ->
     [{_, Dir}] = ets:lookup(Tab, {meta, data_dir}),
-    filename:join(Dir, Key).
+    filename:join([Dir, Tab, integer_to_list(erlang:phash2(Key, 4294967296))]).
