@@ -1,6 +1,7 @@
 \#*
 .\#*
 *~
+/.eunit/
 /_build/
 /bin/*[^sh]
 /rebar.lock

@@ -1,17 +1,22 @@
 -module(cas).
 
--export([init/2, read/2, write/3, match/3]).
+-export([init/2, read/2, write/3, delete/1, delete/2, match/3]).
 
 %%-----------------------------------------------------------------------------
 init(Tab, Dir) ->
-    ets:new(Tab, [named_table, ordered_set]),
-    ets:insert(Tab, {{meta, data_dir}, Dir}),
-    ok = filelib:ensure_dir(data_file(Tab, dummy)).
+    case ets:info(Tab, size) of
+        undefined ->
+            ets:new(Tab, [named_table, ordered_set]),
+            ets:insert(Tab, {{meta, data_dir}, Dir}),
+            ok = filelib:ensure_dir(data_file(Tab, dummy));
+        _ ->
+            {error, exists}
+    end.
 
 read(Tab, Key) ->
     case ets:lookup(Tab, {data, Key}) of
         [] -> [];
-        [{_, _, Val}] -> Val
+        [{_, _, [Val]}] -> [{Key, Val}]
     end.
 
 write(Tab, Key, Val) ->
@@ -24,6 +29,26 @@ write(Tab, Key, Val) ->
                 unlock(Tab, Key, OldVal, OldVal),
                 error({error_persisting, {Tab, Key, Err}})
         end
+    catch
+        throw:Abort -> {aborted, Abort}
+    end.
+
+delete(Tab) ->
+    Source = data_dir(Tab),
+    Dest = Source++"_",
+    file:rename(Source, Dest),
+    catch ets:delete(Tab),
+    spawn(fun() -> rmrf(Dest) end),
+    ok.
+
+delete(Tab, Key) ->
+    try lock(Tab, Key) of
+        [Val] ->
+            file:delete(data_file(Tab, Key)),
+            ets:delete(Tab, {data, Key}),
+            [{Key, Val}];
+        [] ->
+            []
     catch
         throw:Abort -> {aborted, Abort}
     end.
@@ -99,6 +124,58 @@ mk_mapf(M) ->
 persist(Tab, Key, Val) ->
     file:write_file(data_file(Tab, Key), term_to_binary({Key, Val})).
 
+rmrf(F) ->
+    case file:list_dir(F) of
+        {ok, Fs} ->
+            lists:foreach(fun rmrf/1, [filename:join(F,E) || E <- Fs]),
+            file:del_dir(F);
+        {error, enotdir} ->
+            file:delete(F);
+        {error, _} ->
+            ok
+    end.
+
 data_file(Tab, Key) ->
+    Name = integer_to_list(erlang:phash2(Key, 4294967296)),
+    filename:join(data_dir(Tab), Name).
+
+data_dir(Tab) ->
     [{_, Dir}] = ets:lookup(Tab, {meta, data_dir}),
-    filename:join([Dir, Tab, integer_to_list(erlang:phash2(Key, 4294967296))]).
+    filename:join(Dir, Tab).
+
+%%====================================================================
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+basic_test_() ->
+  {"basic happy testing.",
+   {foreach,
+    fun start/0,
+    fun stop/1,
+    [fun t_match/1,
+     fun t_lookup/1,
+     fun t_delete/1
+    ]
+   }}.
+
+start() ->
+    cas:init(foo, "/tmp/cas"),
+    cas:write(foo, {a,b}, #{a => "A",b => "B"}),
+    cas:write(foo, {a,c}, #{a => "A",b => "C"}).
+
+stop(_) ->
+    cas:delete(foo).
+
+t_match(_) ->
+    [?_assertMatch([{{a,_},#{}},{{a,_},#{}}],
+                   cas:match(foo, '_', #{a => "A"}))].
+
+t_lookup(_) ->
+    [?_assertMatch([{{a,b}, #{}}], cas:read(foo, {a,b}))].
+
+t_delete(_) ->
+    cas:delete(foo,{a,b}),
+    [?_assertMatch([], cas:read(foo, {a,b}))].
+
+-endif.
